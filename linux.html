@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux Checklist | CyberPatriot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="index.html">Home</a>
+    <a href="windows-client.html">Windows Client</a>
+    <a href="windows-server.html">Windows Server</a>
+    <a href="linux.html" class="active">Linux</a>
+  </nav>
+
+  <h1>Linux Checklist</h1>
+  <div class="sub">Ubuntu/Debian-focused hardening (notes apply to RHEL/CentOS/Fedora too) — finals-ready. Progress is saved automatically in this browser.</div>
+
+  <div class="progress-bar">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0 / 0 complete</div>
+  </div>
+
+  <div class="toolbar">
+    <button onclick="cpExpandAll()">Expand All</button>
+    <button onclick="cpCollapseAll()">Collapse All</button>
+    <button onclick="cpResetAll()">Reset Checklist</button>
+  </div>
+
+  <div class="note">Work order: <strong>Read README → identify distro/baseline score → forensics questions → users/password/sudo → updates → malware/rootkit scan → services/SSH/firewall → permissions/kernel hardening → cron/persistence → misc hardening.</strong> Re-read the README after every major change — it overrides this list.</div>
+
+  <div id="sections"></div>
+
+  <div class="hub-links">
+    <h3>See also</h3>
+    <ul>
+      <li><a href="windows-client.html">Windows Client checklist</a> — for standalone Windows 10/11 workstation images.</li>
+      <li><a href="windows-server.html">Windows Server checklist</a> — for domain controllers, DNS/DHCP, AD, and other server roles.</li>
+      <li><a href="index.html">Back to home</a></li>
+    </ul>
+  </div>
+
+  <footer>Practice on official CyberPatriot practice images before competition day.</footer>
+</div>
+
+<script src="data-linux.js"></script>
+<script src="checklist.js"></script>
+<script>initChecklist(DATA_LINUX, QUICK_REF_LINUX, "cp_linux_v1");</script>
+</body>
+</html>

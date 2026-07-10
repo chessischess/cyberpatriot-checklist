@@ -1,4 +1,4 @@
-# Windows CyberPatriot Checklist (Finals-Ready)
+# Windows Client CyberPatriot Checklist (Finals-Ready)
 
 > Work order matters: **Read README first → snapshot/baseline → forensics questions → users/passwords → updates → services/features → policies → firewall → malware/unwanted software → file/permissions/shares → misc hardening.**
 > Take a screenshot of your starting score, and screenshot again every 15-20 min. Re-read the README after every major change — it overrides this checklist.
@@ -180,14 +180,14 @@ Finals images are intentionally harder and often include intentionally "broken" 
 - [ ] Expect **obscure/rare CIS benchmark items** beyond the basics above — skim the current year's CIS Benchmark for Windows 10/11 or Server as extra reference material before competition day.
 - [ ] Build (in practice, ahead of time) a **personal automation checklist/script** (PowerShell) for the repetitive, safe items (disable Guest, set password policy, enable firewall, disable AutoPlay) — but always run scripts on **practice images first**, and hand-verify README-specific items manually; don't blindly run someone else's script on competition day.
 - [ ] Track points after each category — if a change doesn't move the score or drops it, investigate/revert immediately rather than moving on.
-- [ ] Time management for a 6-hour round: budget roughly —
-  - 0:00–0:20 README + forensics questions + baseline
-  - 0:20–1:30 Users/passwords/policy
-  - 1:30–2:30 Updates + malware/software audit
-  - 2:30–3:30 Services/features + firewall
-  - 3:30–4:30 File system/permissions + misc hardening
-  - 4:30–5:30 Second full README re-read + fix stragglers + verify critical services
-  - 5:30–6:00 Final score check, screenshots, buffer for surprises
+- [ ] Time management for a 4-hour round: budget roughly —
+  - 0:00–0:15 README + forensics questions + baseline
+  - 0:15–1:00 Users/passwords/policy
+  - 1:00–1:45 Updates + malware/software audit
+  - 1:45–2:30 Services/features + firewall
+  - 2:30–3:15 File system/permissions + misc hardening
+  - 3:15–3:45 Second full README re-read + fix stragglers + verify critical services
+  - 3:45–4:00 Final score check, screenshots, buffer for surprises
 
 ---
 
@@ -213,4 +213,6 @@ Finals images are intentionally harder and often include intentionally "broken" 
 
 ---
 
-*Practice on official CyberPatriot practice images before competition day — muscle memory matters more than this list under a 6-hour clock.*
+*Practice on official CyberPatriot practice images before competition day — muscle memory matters more than this list under a 4-hour clock.*
+
+See also: [Windows Server Checklist](Windows_Server_Checklist.md) · [Linux Checklist](Linux_Checklist.md)

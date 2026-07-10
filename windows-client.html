@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows Client Checklist | CyberPatriot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="index.html">Home</a>
+    <a href="windows-client.html" class="active">Windows Client</a>
+    <a href="windows-server.html">Windows Server</a>
+    <a href="linux.html">Linux</a>
+  </nav>
+
+  <h1>Windows Client Checklist</h1>
+  <div class="sub">Windows 10/11 hardening — finals-ready. Progress is saved automatically in this browser.</div>
+
+  <div class="progress-bar">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0 / 0 complete</div>
+  </div>
+
+  <div class="toolbar">
+    <button onclick="cpExpandAll()">Expand All</button>
+    <button onclick="cpCollapseAll()">Collapse All</button>
+    <button onclick="cpResetAll()">Reset Checklist</button>
+  </div>
+
+  <div class="note">Work order: <strong>Read README → baseline/screenshot score → forensics questions → users/passwords → updates → services/features → policies → firewall → malware/software → files/permissions → misc hardening.</strong> Re-read the README after every major change — it overrides this list.</div>
+
+  <div id="sections"></div>
+
+  <div class="hub-links">
+    <h3>See also</h3>
+    <ul>
+      <li><a href="windows-server.html">Windows Server checklist</a> — for domain controllers, DNS/DHCP, AD, and other server roles.</li>
+      <li><a href="linux.html">Linux checklist</a> — for Ubuntu/Debian/RHEL images.</li>
+      <li><a href="index.html">Back to home</a></li>
+    </ul>
+  </div>
+
+  <footer>Practice on official CyberPatriot practice images before competition day.</footer>
+</div>
+
+<script src="data-windows-client.js"></script>
+<script src="checklist.js"></script>
+<script>initChecklist(DATA_WINDOWS_CLIENT, QUICK_REF_WINDOWS_CLIENT, "cp_win_client_v1");</script>
+</body>
+</html>

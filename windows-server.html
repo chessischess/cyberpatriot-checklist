@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows Server Checklist | CyberPatriot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="index.html">Home</a>
+    <a href="windows-client.html">Windows Client</a>
+    <a href="windows-server.html" class="active">Windows Server</a>
+    <a href="linux.html">Linux</a>
+  </nav>
+
+  <h1>Windows Server Checklist</h1>
+  <div class="sub">Windows Server 2016/2019/2022 hardening, including AD DS / DNS / DHCP roles — finals-ready. Progress is saved automatically in this browser.</div>
+
+  <div class="progress-bar">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0 / 0 complete</div>
+  </div>
+
+  <div class="toolbar">
+    <button onclick="cpExpandAll()">Expand All</button>
+    <button onclick="cpCollapseAll()">Collapse All</button>
+    <button onclick="cpResetAll()">Reset Checklist</button>
+  </div>
+
+  <div class="note">Work order: <strong>Read README → identify role(s)/baseline score → forensics questions → accounts/password policy → updates → roles/features → GPO/policy → firewall/network → AD/DNS/DHCP → files/permissions → misc hardening.</strong> Re-read the README after every major change — a broken DC/DNS/DHCP tanks the whole team's score.</div>
+
+  <div id="sections"></div>
+
+  <div class="hub-links">
+    <h3>See also</h3>
+    <ul>
+      <li><a href="windows-client.html">Windows Client checklist</a> — for standalone Windows 10/11 workstation images.</li>
+      <li><a href="linux.html">Linux checklist</a> — for Ubuntu/Debian/RHEL images.</li>
+      <li><a href="index.html">Back to home</a></li>
+    </ul>
+  </div>
+
+  <footer>Practice on official CyberPatriot practice images before competition day.</footer>
+</div>
+
+<script src="data-windows-server.js"></script>
+<script src="checklist.js"></script>
+<script>initChecklist(DATA_WINDOWS_SERVER, QUICK_REF_WINDOWS_SERVER, "cp_win_server_v1");</script>
+</body>
+</html>
