@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Windows CyberPatriot Checklist</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --text: #1b1f24;
+    --muted: #5b6572;
+    --accent: #2563eb;
+    --done: #16a34a;
+    --border: #e2e6ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 16px; font-size: 0.95rem; }
+
+  .progress-bar {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    padding: 10px 0 16px;
+  }
+  .progress-track {
+    background: var(--border);
+    border-radius: 8px;
+    height: 14px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    background: var(--accent);
+    height: 100%;
+    width: 0%;
+    transition: width 0.2s ease;
+  }
+  .progress-text {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  button {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text);
+  }
+  button:hover { background: var(--border); }
+
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    background: #fafbfc;
+  }
+  .section-header .count {
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .section-body {
+    padding: 4px 16px 12px 16px;
+  }
+  .section-body.collapsed { display: none; }
+
+  .note {
+    font-size: 0.85rem;
+    color: var(--muted);
+    background: #fff8e1;
+    border-left: 3px solid #f5b400;
+    padding: 8px 10px;
+    margin: 8px 0;
+    border-radius: 4px;
+  }
+
+  ul.items { list-style: none; padding: 0; margin: 0; }
+  ul.items li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f2f4;
+    font-size: 0.92rem;
+  }
+  ul.items li:last-child { border-bottom: none; }
+  ul.items input[type=checkbox] {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+  ul.items label { cursor: pointer; }
+  li.checked label { color: var(--muted); text-decoration: line-through; }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.88rem; }
+  table th, table td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+  }
+  table th { background: #fafbfc; }
+  code {
+    background: #f0f2f4;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+
+  .arrow { transition: transform 0.15s ease; }
+  .collapsed-arrow { transform: rotate(-90deg); }
+
+  footer { color: var(--muted); font-size: 0.8rem; text-align: center; margin-top: 24px; }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --card: #171a21;
+      --text: #e6e9ee;
+      --muted: #8b93a1;
+      --border: #2a2e37;
+    }
+    .section-header { background: #1c1f27; }
+    .note { background: #2a2410; border-left-color: #d9a600; color: #e6c66b; }
+    table th { background: #1c1f27; }
+    code { background: #1c1f27; }
+    ul.items li { border-bottom-color: #22252d; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Windows CyberPatriot Checklist</h1>
+  <div class="sub">Finals-ready hardening checklist. Progress is saved automatically in this browser.</div>
+
+  <div class="progress-bar">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0 / 0 complete</div>
+  </div>
+
+  <div class="toolbar">
+    <button onclick="expandAll()">Expand All</button>
+    <button onclick="collapseAll()">Collapse All</button>
+    <button onclick="resetAll()">Reset Checklist</button>
+  </div>
+
+  <div class="note">Work order: <strong>Read README → baseline/screenshot score → forensics questions → users/passwords → updates → services/features → policies → firewall → malware/software → files/permissions → misc hardening.</strong> Re-read the README after every major change — it overrides this list.</div>
+
+  <div id="sections"></div>
+
+  <footer>Practice on official CyberPatriot practice images before competition day.</footer>
+</div>
+
+<script>
+const DATA = [
+{
+  title: "0. Before You Touch Anything",
+  items: [
+    "Read the README fully. Note every authorized user/admin, required critical services, prohibited software, special instructions.",
+    "Note critical services from README — do NOT disable these, only secure them.",
+    "Check current score in the Scoring Report app — screenshot it.",
+    "Answer forensics questions first, before changing the system. Save answers where README specifies.",
+    "Identify OS version (winver) and whether it's workstation or server.",
+    "Do NOT disconnect network unless README explicitly says to."
+  ]
+},
+{
+  title: "1. User Accounts & Password Policy",
+  items: [
+    "Open Local Users and Groups (lusrmgr.msc) or netplwiz / net user.",
+    "Cross-reference every account against README's authorized user list.",
+    "Delete or disable unauthorized/unknown local accounts (disable first if unsure).",
+    "Verify Administrators group membership (net localgroup administrators) — remove unauthorized admins.",
+    "Ensure Guest account is disabled.",
+    "Rename/disable default Administrator account only if README specifies.",
+    "Check for hidden accounts (SpecialAccounts\\UserList registry key, net user from cmd).",
+    "Set a strong, compliant password for every authorized account.",
+    "Fix privilege level for any user impersonating an authorized account — don't just rename.",
+    "Check Autologon registry key (Winlogon\\AutoAdminLogon) — disable if present.",
+    "Password history: enforce 24 remembered.",
+    "Maximum password age: 60–90 days (not 0/never).",
+    "Minimum password age: 1+ day.",
+    "Minimum password length: 8+ (14 for finals).",
+    "Password must meet complexity requirements: Enabled.",
+    "Store passwords using reversible encryption: Disabled.",
+    "Account lockout duration: 15–30 min.",
+    "Account lockout threshold: 3–5 invalid attempts.",
+    "Reset lockout counter after: 15–30 min.",
+    "Force password change on next logon for accounts with weak/known passwords if appropriate."
+  ]
+},
+{
+  title: "2. Windows Updates & Patching",
+  items: [
+    "Settings → Update & Security → Windows Update → check and install all updates (multiple passes/reboots).",
+    "Set update settings to automatic if disabled.",
+    "Verify Windows Defender / antivirus definitions are up to date.",
+    "Check gpedit.msc for a GPO blocking updates — fix Configure Automatic Updates policy.",
+    "If server: verify WSUS config isn't pointing somewhere malicious."
+  ]
+},
+{
+  title: "3. Malware, Unwanted & Unauthorized Software",
+  items: [
+    "Programs and Features — compare installed software vs README's authorized list.",
+    "Uninstall hacking tools (Wireshark, Nmap, Cain & Abel, Metasploit, netcat, John, hydra, etc.).",
+    "Uninstall P2P/torrent software (uTorrent, BitTorrent, LimeWire).",
+    "Uninstall unauthorized remote access tools (TeamViewer, AnyDesk, VNC, RAT-like tools).",
+    "Uninstall old/vulnerable software versions and unauthorized games.",
+    "Run a full Windows Defender (or specified AV) scan — quarantine/remove threats.",
+    "Enable Defender real-time protection, cloud-delivered protection, tamper protection.",
+    "Check Task Scheduler (taskschd.msc) for suspicious/unauthorized scheduled tasks.",
+    "Check Startup apps (Task Manager / msconfig) for unauthorized entries.",
+    "Check services.msc and running processes for unfamiliar/malicious items — research before killing.",
+    "Check for unauthorized browser extensions; reset hijacked homepage/settings.",
+    "Search AppData\\Roaming, Local\\Temp, ProgramData, Windows\\Temp for suspicious exe/bat/ps1/vbs files.",
+    "Check hosts file (System32\\drivers\\etc\\hosts) for malicious redirects.",
+    "Check registry Run/RunOnce keys (HKLM and HKCU) for persistence entries."
+  ]
+},
+{
+  title: "4. Services & Windows Features",
+  items: [
+    "services.msc — disable/stop unneeded, risky services not required by README (Telnet, FTP, Remote Registry, SNMP, Simple TCP/IP, Fax).",
+    "Turn Windows features on/off: disable Telnet Client, TFTP Client, SMB1/CIFS support (unless required).",
+    "Disable unnecessary IIS components if not the required web server.",
+    "Disable Remote Desktop unless explicitly required; if required, enable NLA and restrict users.",
+    "Disable Remote Assistance (System Properties → Remote).",
+    "Disable AutoPlay/AutoRun for all drives via gpedit.msc.",
+    "Disable SMBv1 entirely.",
+    "Review optional features for anything unusual (unneeded server roles on a workstation)."
+  ]
+},
+{
+  title: "5. Local Security Policy & Group Policy",
+  items: [
+    "Guest account status → Disabled (Security Options).",
+    "Rename administrator account only if instructed.",
+    "Limit local account use of blank passwords to console logon only → Enabled.",
+    "Do not display last user name → Enabled.",
+    "Do not require CTRL+ALT+DEL → Disabled (i.e. DO require it).",
+    "Do not allow anonymous enumeration of SAM accounts/shares → Enabled.",
+    "LAN Manager auth level → Send NTLMv2 response only, refuse LM & NTLM.",
+    "Microsoft network server: digitally sign communications (always) → Enabled.",
+    "Prevent users from installing printer drivers → Enabled (context dependent).",
+    "UAC settings → Enabled, Always Notify or default-and-above.",
+    "User Rights Assignment: restrict Log on as a service / locally / network access to authorized accounts.",
+    "Deny log on locally for Guest.",
+    "Remove unauthorized users from Debug programs, Take ownership, Act as part of the OS, Back up files.",
+    "Confirm UAC is enabled via Control Panel (not set to Never Notify).",
+    "Enable audit policy for logon events, account management, policy change, object access.",
+    "Check gpedit.msc for suspicious custom policies weakening security — reset to secure defaults."
+  ]
+},
+{
+  title: "6. Firewall & Network",
+  items: [
+    "Windows Defender Firewall enabled for all 3 profiles (Domain, Private, Public).",
+    "Default inbound = Block, outbound = Allow (unless README says otherwise).",
+    "Review inbound/outbound rules for unauthorized or overly permissive entries (ports like 4444, 1337, 31337, or Any/Any rules).",
+    "Remove firewall rules for uninstalled/unauthorized software.",
+    "Check netstat -ano for unexpected listening ports and investigate the owning process.",
+    "Review network shares (net share) — remove unauthorized ones, check share + NTFS permissions.",
+    "Only disable IPv6 if README explicitly says to.",
+    "Re-check hosts file / DNS settings for tampering.",
+    "Adjust ICMP firewall rules only if README requires it."
+  ]
+},
+{
+  title: "7. File System, Permissions & Data",
+  items: [
+    "Search for and remove prohibited files per README categories (media: mp3/mp4/avi/mkv/mov/wav).",
+    "Remove non-work images (jpg/png/gif) in user folders — don't delete legitimate forensic/work files.",
+    "Remove unrecognized hacking scripts (exe/bat/ps1/vbs/py).",
+    "Check archives (zip/rar/7z) that might hide contraband.",
+    "Check permissions on sensitive directories (System32, user profiles) — no unauthorized Everyone: Full Control.",
+    "Verify shared folder permissions match least-privilege / README spec.",
+    "Check Recycle Bin and hidden/system files for hidden contraband.",
+    "Only enable BitLocker/EFS if instructed — don't encrypt blindly, it can break scoring engine access."
+  ]
+},
+{
+  title: "8. Application-Specific / Server Roles (if present)",
+  items: [
+    "IIS: update it, remove default sample sites/pages, disable directory browsing, least-privilege app pool identities.",
+    "SQL Server: check for default/blank sa password, disable xp_cmdshell, least-privilege accounts.",
+    "Domain Controller: check AD users/groups/OUs vs README, review GPOs for tampering, verify DNS zones.",
+    "FTP: disable anonymous access, use TLS if possible, restrict to necessary users."
+  ]
+},
+{
+  title: "9. Miscellaneous Hardening",
+  items: [
+    "Enable screen lock/screensaver with password, 10–15 min timeout.",
+    "Disable USB storage auto-execution (don't disable USB entirely unless told).",
+    "Reset Internet Options/browser security settings; remove unauthorized proxy (LAN Settings).",
+    "Verify system time/timezone is correct (affects logs/auditing).",
+    "Check Event Viewer briefly for signs of compromise related to forensics questions.",
+    "Confirm README critical services are still running after EVERY major change.",
+    "Final re-read of README — confirm every instruction and named vulnerability was addressed."
+  ]
+},
+{
+  title: "10. Finals-Round Specific Notes",
+  items: [
+    "Expect broken PowerShell or modified PATH/PSModulePath — check [Environment]::GetEnvironmentVariables() and fix.",
+    "Expect renamed/relocated critical binaries or hijacked file associations (.exe/.msc/.ps1) — verify.",
+    "Expect GPO-based traps that silently re-disable Defender / re-enable Guest / lower password policy — check rsop.msc for conflicts, not just secpol.msc.",
+    "Skim the current year's CIS Benchmark for Windows 10/11 or Server for obscure items beyond the basics.",
+    "Have a personal PowerShell automation script for safe repetitive items, tested on practice images first — never blind-run someone else's script on competition day.",
+    "Track score after each category — if a change doesn't move the score or drops it, investigate/revert immediately.",
+    "Time budget for 6 hrs: 0:00–0:20 README+forensics+baseline, 0:20–1:30 users/policy, 1:30–2:30 updates+malware, 2:30–3:30 services+firewall, 3:30–4:30 files+misc, 4:30–5:30 second README pass, 5:30–6:00 final check/screenshots."
+  ]
+}
+];
+
+const QUICK_REF = [
+  ["Local Users and Groups", "lusrmgr.msc"],
+  ["Local Security Policy", "secpol.msc"],
+  ["Group Policy Editor", "gpedit.msc"],
+  ["Resultant Set of Policy", "rsop.msc"],
+  ["Services", "services.msc"],
+  ["Task Scheduler", "taskschd.msc"],
+  ["Computer Management", "compmgmt.msc"],
+  ["Windows Features", "optionalfeatures.exe"],
+  ["System Config", "msconfig"],
+  ["Network shares", "net share"],
+  ["List all users", "net user"],
+  ["Admin group members", "net localgroup administrators"],
+  ["Open ports/connections", "netstat -ano"],
+  ["Event Viewer", "eventvwr.msc"],
+  ["Registry Editor", "regedit"]
+];
+
+const STORAGE_KEY = "cp_win_checklist_v1";
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function render() {
+  const state = loadState();
+  const container = document.getElementById("sections");
+  container.innerHTML = "";
+
+  DATA.forEach((section, sIdx) => {
+    const secEl = document.createElement("div");
+    secEl.className = "section";
+
+    const header = document.createElement("div");
+    header.className = "section-header";
+    header.innerHTML = `<span><span class="arrow" id="arrow-${sIdx}">▾</span> ${section.title}</span><span class="count" id="count-${sIdx}"></span>`;
+    header.onclick = () => {
+      const body = document.getElementById(`body-${sIdx}`);
+      const arrow = document.getElementById(`arrow-${sIdx}`);
+      body.classList.toggle("collapsed");
+      arrow.classList.toggle("collapsed-arrow");
+    };
+
+    const body = document.createElement("div");
+    body.className = "section-body";
+    body.id = `body-${sIdx}`;
+
+    const ul = document.createElement("ul");
+    ul.className = "items";
+
+    section.items.forEach((text, iIdx) => {
+      const id = `s${sIdx}-i${iIdx}`;
+      const li = document.createElement("li");
+      const checked = !!state[id];
+      if (checked) li.classList.add("checked");
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = id;
+      cb.checked = checked;
+      cb.onchange = () => {
+        const s = loadState();
+        s[id] = cb.checked;
+        saveState(s);
+        li.classList.toggle("checked", cb.checked);
+        updateProgress();
+        updateSectionCount(sIdx);
+      };
+
+      const label = document.createElement("label");
+      label.htmlFor = id;
+      label.textContent = text;
+
+      li.appendChild(cb);
+      li.appendChild(label);
+      ul.appendChild(li);
+    });
+
+    body.appendChild(ul);
+
+    // Add quick reference table at end of last section
+    if (sIdx === DATA.length - 1) {
+      const refTitle = document.createElement("p");
+      refTitle.innerHTML = "<strong>Quick Reference: Tools to Open Fast</strong>";
+      const table = document.createElement("table");
+      table.innerHTML = "<tr><th>Tool</th><th>Command</th></tr>" +
+        QUICK_REF.map(r => `<tr><td>${r[0]}</td><td><code>${r[1]}</code></td></tr>`).join("");
+      body.appendChild(refTitle);
+      body.appendChild(table);
+    }
+
+    secEl.appendChild(header);
+    secEl.appendChild(body);
+    container.appendChild(secEl);
+    updateSectionCount(sIdx);
+  });
+
+  updateProgress();
+}
+
+function updateSectionCount(sIdx) {
+  const state = loadState();
+  const total = DATA[sIdx].items.length;
+  let done = 0;
+  for (let i = 0; i < total; i++) if (state[`s${sIdx}-i${i}`]) done++;
+  document.getElementById(`count-${sIdx}`).textContent = `${done} / ${total}`;
+}
+
+function updateProgress() {
+  const state = loadState();
+  let total = 0, done = 0;
+  DATA.forEach((section, sIdx) => {
+    section.items.forEach((_, iIdx) => {
+      total++;
+      if (state[`s${sIdx}-i${iIdx}`]) done++;
+    });
+  });
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressText").textContent = `${done} / ${total} complete (${pct}%)`;
+}
+
+function expandAll() {
+  document.querySelectorAll(".section-body").forEach(b => b.classList.remove("collapsed"));
+  document.querySelectorAll(".arrow").forEach(a => a.classList.remove("collapsed-arrow"));
+}
+function collapseAll() {
+  document.querySelectorAll(".section-body").forEach(b => b.classList.add("collapsed"));
+  document.querySelectorAll(".arrow").forEach(a => a.classList.add("collapsed-arrow"));
+}
+function resetAll() {
+  if (confirm("Reset all checked items?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    render();
+  }
+}
+
+render();
+</script>
+</body>
+</html>
