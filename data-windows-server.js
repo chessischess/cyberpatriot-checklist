@@ -302,7 +302,36 @@ const DATA_WINDOWS_SERVER = [
   ]
 },
 {
-  title: "16. Finals-Round Specific Notes",
+  title: "16. Advanced Credential & Attack-Surface Hardening",
+  items: [
+    { t: "Disable WDigest credential caching on every server, especially DCs, so plaintext credentials aren't held in LSASS memory.",
+      d: ["Press Win+R, type `regedit`, press Enter.", "Navigate to HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest.", "Create/set the DWORD `UseLogonCredential` to 0.", "Or push it via a GPO in gpmc.msc under the same registry path if you need it domain-wide."] },
+    { t: "Enable LSA protection (RunAsPPL) so LSASS runs as a protected process, blocking Mimikatz-style credential dumping — verify compatibility with any required security software first.",
+      d: ["Press Win+R, type `regedit`, press Enter.", "Navigate to HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa.", "Create/set the DWORD `RunAsPPL` to 1.", "Reboot for it to take effect; confirm no required agent/monitoring software breaks afterward."] },
+    { t: "Add sensitive admin accounts to the built-in Protected Users group to block NTLM and weak-crypto Kerberos for them.",
+      d: ["Press Win+R, type `dsa.msc`, press Enter.", "Open the Protected Users group under the Users container → Members tab → Add.", "Add Domain Admins/critical accounts, then verify those accounts can still authenticate (Protected Users forces Kerberos-only, no NTLM/DES/RC4) before walking away."] },
+    { t: "Disable the Print Spooler service on Domain Controllers unless explicitly required — PrintNightmare (CVE-2021-34527) turns it into a domain-wide privilege-escalation vector.",
+      d: ["Press Win+R, type `services.msc`, press Enter.", "Find Print Spooler, click Stop, then Properties → set Startup type to Disabled → OK.", "Only skip this if the README requires print services from this specific box."] },
+    { t: "Restrict NTLM authentication domain-wide via 'Network security: Restrict NTLM' policies — audit first, then enforce, to avoid breaking legitimate logons.",
+      d: ["In gpmc.msc, edit the relevant GPO → Computer Configuration → Policies → Windows Settings → Security Settings → Local Policies → Security Options.", "Set 'Network security: Restrict NTLM: Audit NTLM authentication in this domain' to Enable all first and review Event Viewer for legitimate NTLM use.", "Once confirmed safe, set 'Network security: Restrict NTLM: NTLM authentication in this domain' to Deny all (or Deny for specific accounts) per the README's tolerance for breakage."] },
+    { t: "Disable LLMNR/NetBIOS broadcast name resolution domain-wide via GPO to prevent Responder-style credential-capture attacks.",
+      d: ["In gpmc.msc, edit the relevant GPO → Computer Configuration → Administrative Templates → Network → DNS Client.", "Enable 'Turn off Multicast Name Resolution'.", "For NetBIOS, push adapter WINS settings to 'Disable NetBIOS over TCP/IP' via GPO Preferences or set it manually on each server's adapter."] },
+    { t: "Turn on PowerShell Script Block Logging and Module Logging via Group Policy on all servers for auditability.",
+      d: ["In gpmc.msc, edit the relevant GPO → Computer Configuration → Administrative Templates → Windows Components → Windows PowerShell.", "Enable 'Turn on PowerShell Script Block Logging' and 'Turn on Module Logging' (module name `*`)."] },
+    { t: "Enable Attack Surface Reduction rules (Defender) where the server role supports it, particularly around LSASS credential theft.",
+      d: ["Open PowerShell as Administrator.", "Run `Set-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions Enabled` to block LSASS credential theft.", "Test in AuditMode first on a server running production workloads before enforcing Enabled, to avoid breaking a required role."] },
+    { t: "Verify/deploy LAPS (Local Administrator Password Solution) if the README calls for unique, randomized local admin passwords across member servers.",
+      d: ["Check whether the LAPS GPO templates and PowerShell module are already present (`Get-Command Get-AdmPwdPassword`).", "If required and not present, install the LAPS client/management tools and configure the GPO to randomize and rotate local admin passwords per the README's spec."] },
+    { t: "Restrict anonymous/null session access further via RestrictAnonymous and RestrictAnonymousSAM registry values domain-wide.",
+      d: ["Push via GPO Registry Preferences, or set directly: regedit → HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa.", "Set `RestrictAnonymous` to 1 and `RestrictAnonymousSAM` to 1 (create as DWORD if missing) on each server."] },
+    { t: "Enable Windows Firewall logging (dropped and successful connections) for forensic visibility during the round.",
+      d: ["Press Win+R, type `wf.msc`, press Enter.", "Click Windows Defender Firewall Properties → each profile tab → Logging section → Customize.", "Set 'Log dropped packets' and 'Log successful connections' to Yes, note the log file path for later review."] },
+    { t: "Verify Kerberos delegation settings on service/computer accounts aren't set to unconstrained delegation for non-DC boxes — a classic AD privilege-escalation trap.",
+      d: ["Press Win+R, type `dsa.msc`, press Enter, enable View → Advanced Features.", "For each computer/service account, open Properties → Delegation tab.", "Ensure only Constrained delegation (or None) is configured for non-DC systems; remove 'Trust this computer for delegation to any service' unless the README explicitly requires it."] }
+  ]
+},
+{
+  title: "17. Finals-Round Specific Notes",
   items: [
     { t: "Expect broken PowerShell, modified PATH/PSModulePath, or disabled execution policy traps — check and restore sane values.",
       d: ["Try opening PowerShell; if broken, use Command Prompt.", "Run `[Environment]::GetEnvironmentVariables()` and `Get-ExecutionPolicy` to check for tampering; fix via System Properties → Environment Variables or `Set-ExecutionPolicy`."] },

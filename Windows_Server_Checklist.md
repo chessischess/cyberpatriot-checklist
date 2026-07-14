@@ -165,7 +165,24 @@
 - [ ] Confirm every README-listed critical service/role is still running after EVERY major change — a broken DC/DNS/DHCP tanks the whole team's score.
 - [ ] Do a final full README re-read to confirm every instruction and named vulnerability was addressed.
 
-## 16. Finals-Round Specific Notes
+## 16. Advanced Credential & Attack-Surface Hardening
+
+- [ ] Disable **WDigest** credential caching on every server, especially DCs (`HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest\UseLogonCredential` = `0`, or push via GPO domain-wide).
+- [ ] Enable **LSA protection (RunAsPPL)** so LSASS runs as a protected process against Mimikatz-style dumping (`HKLM\SYSTEM\CurrentControlSet\Control\Lsa\RunAsPPL` = `1`) — verify required security/monitoring software still works before walking away.
+- [ ] Add sensitive admin accounts to the built-in **Protected Users** group (`dsa.msc`) to block NTLM and weak-crypto Kerberos for them — verify they can still authenticate afterward (Kerberos-only, no NTLM/DES/RC4).
+- [ ] Disable the **Print Spooler** service on Domain Controllers unless explicitly required — PrintNightmare (CVE-2021-34527) turns it into a domain-wide privilege-escalation vector.
+- [ ] Restrict **NTLM authentication** domain-wide via `Network security: Restrict NTLM` policies — audit first (`Audit NTLM authentication in this domain` = Enable all), review Event Viewer, then enforce `Deny all` per README's tolerance for breakage.
+- [ ] Disable **LLMNR/NetBIOS** broadcast name resolution domain-wide via GPO to prevent Responder-style credential-capture attacks.
+- [ ] Turn on **PowerShell Script Block Logging** and **Module Logging** via GPO on all servers for auditability.
+- [ ] Enable **Attack Surface Reduction (ASR) rules** where the server role supports it, particularly blocking LSASS credential theft — test in AuditMode first on production-role servers.
+- [ ] Verify/deploy **LAPS** (Local Administrator Password Solution) if the README calls for unique, randomized local admin passwords across member servers.
+- [ ] Restrict anonymous/null session access further via `RestrictAnonymous` and `RestrictAnonymousSAM` registry values domain-wide.
+- [ ] Enable **Windows Firewall logging** (dropped and successful connections) for forensic visibility during the round (`wf.msc → Properties → Logging → Customize`).
+- [ ] Verify **Kerberos delegation** settings on service/computer accounts aren't set to unconstrained delegation for non-DC boxes — a classic AD privilege-escalation trap; only Constrained or None unless README requires otherwise.
+
+---
+
+## 17. Finals-Round Specific Notes
 
 - [ ] Expect broken PowerShell, modified PATH/PSModulePath, or disabled execution policy traps — check and restore sane values.
 - [ ] Expect GPO traps pushed from the Default Domain Policy or an OU-linked GPO that silently re-disable Defender, re-enable Guest, or lower the password policy on refresh — check `rsop.msc` / `gpresult`, not just local secpol.

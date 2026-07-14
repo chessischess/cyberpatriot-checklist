@@ -244,7 +244,36 @@ const DATA_WINDOWS_CLIENT = [
   ]
 },
 {
-  title: "10. Finals-Round Specific Notes",
+  title: "10. Advanced Credential & Attack-Surface Hardening",
+  items: [
+    { t: "Disable WDigest credential caching so plaintext passwords aren't held in LSASS memory.",
+      d: ["Press Win+R, type `regedit`, press Enter.", "Navigate to HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest.", "Create/set the DWORD `UseLogonCredential` to 0.", "No reboot needed, but log off/on to fully clear any already-cached credentials."] },
+    { t: "Enable LSA protection (RunAsPPL) so LSASS runs as a protected process, blocking common credential-dumping tools (e.g. Mimikatz).",
+      d: ["Press Win+R, type `regedit`, press Enter.", "Navigate to HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa.", "Create/set the DWORD `RunAsPPL` to 1.", "Reboot for it to take effect."] },
+    { t: "Disable the PowerShell v2 engine entirely — it lacks AMSI and script block logging and is a classic downgrade-attack target.",
+      d: ["Press Win+R, type `optionalfeatures.exe`, press Enter.", "Untick 'Windows PowerShell 2.0 Engine' if listed, click OK.", "Or in an admin PowerShell prompt run `Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root`."] },
+    { t: "Turn on PowerShell Script Block Logging and Module Logging via Group Policy so malicious commands leave an audit trail.",
+      d: ["Press Win+R, type `gpedit.msc`, press Enter.", "Navigate to Computer Configuration → Administrative Templates → Windows Components → Windows PowerShell.", "Double-click 'Turn on PowerShell Script Block Logging', select Enabled, click OK.", "Double-click 'Turn on Module Logging', select Enabled, click 'Show' and enter `*` to log all modules, click OK."] },
+    { t: "Enable Attack Surface Reduction rules in Windows Defender (block credential theft from LSASS, block Office child-process creation, block obfuscated scripts).",
+      d: ["Open PowerShell as Administrator.", "Run `Set-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions Enabled` to block LSASS credential theft.", "Repeat with other relevant ASR rule GUIDs from Microsoft's documentation for Office child-process and script-based rules, setting each to Enabled (or AuditMode first to check for breakage)."] },
+    { t: "Enable Controlled Folder Access for ransomware protection on user data folders.",
+      d: ["Open Windows Security → Virus & threat protection → Manage ransomware protection.", "Toggle Controlled folder access to On.", "Add any legitimate apps that get blocked to the allowed list rather than disabling the feature."] },
+    { t: "Verify Exploit Protection system-wide mitigations (DEP, ASLR, CFG) are still at their secure defaults, not weakened.",
+      d: ["Open Windows Security → App & browser control → Exploit protection settings.", "Check the System settings tab — DEP, ASLR (mandatory/bottom-up), and CFG should all be 'On by default' or explicitly On.", "Fix anything that's been switched to Off."] },
+    { t: "Disable LLMNR and NetBIOS name resolution to block Responder-style credential-capture attacks on the local network.",
+      d: ["Press Win+R, type `gpedit.msc`, press Enter.", "Navigate to Computer Configuration → Administrative Templates → Network → DNS Client.", "Double-click 'Turn off Multicast Name Resolution', select Enabled, click OK.", "Then go to Control Panel → Network and Sharing Center → Change adapter settings → adapter Properties → IPv4 Properties → Advanced → WINS tab → select 'Disable NetBIOS over TCP/IP', click OK."] },
+    { t: "Restrict anonymous/null session access further via RestrictAnonymous and RestrictAnonymousSAM registry values (belt-and-suspenders alongside the Section 5 policy setting).",
+      d: ["Press Win+R, type `regedit`, press Enter.", "Navigate to HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Lsa.", "Set `RestrictAnonymous` to 1 and `RestrictAnonymousSAM` to 1 (create as DWORD if missing)."] },
+    { t: "Clear stray saved credentials in Credential Manager that could let an attacker (or a leftover image state) auto-authenticate as someone else.",
+      d: ["Open Control Panel → Credential Manager.", "Review both Windows Credentials and Generic Credentials.", "Remove any entry you don't recognize or that isn't required by README-authorized software."] },
+    { t: "If the machine supports it, confirm Secure Boot and TPM are enabled (relevant to Windows 11 baselines).",
+      d: ["Press Win+R, type `msinfo32`, press Enter — check 'Secure Boot State' and 'BIOS Mode'.", "Press Win+R, type `tpm.msc`, press Enter to check TPM status.", "Only change firmware settings if you're confident and it's safe to reboot into UEFI — don't do this blind mid-round."] },
+    { t: "Disable the Print Spooler service if this machine doesn't need to print — mitigates PrintNightmare-class vulnerabilities (CVE-2021-34527).",
+      d: ["Press Win+R, type `services.msc`, press Enter.", "Find Print Spooler, click Stop, then Properties → set Startup type to Disabled → OK.", "Skip this if the README requires printing on this machine."] }
+  ]
+},
+{
+  title: "11. Finals-Round Specific Notes",
   items: [
     { t: "Expect broken PowerShell or modified PATH/PSModulePath — check [Environment]::GetEnvironmentVariables() and fix.",
       d: ["Try opening PowerShell — if it fails or key commands error out, open Command Prompt instead.", "Run `[Environment]::GetEnvironmentVariables()` in PowerShell (or `set` in cmd) to inspect PATH.", "Compare against a known-good baseline (e.g. a practice image) and remove/restore any hijacked entries via System Properties → Advanced → Environment Variables."] },

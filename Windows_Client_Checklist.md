@@ -170,7 +170,24 @@
 
 ---
 
-## 10. Finals-Round Specific Notes
+## 10. Advanced Credential & Attack-Surface Hardening
+
+- [ ] Disable **WDigest** credential caching so plaintext passwords aren't held in LSASS memory (`HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest\UseLogonCredential` = `0`).
+- [ ] Enable **LSA protection (RunAsPPL)** so LSASS runs as a protected process, blocking common credential-dumping tools like Mimikatz (`HKLM\SYSTEM\CurrentControlSet\Control\Lsa\RunAsPPL` = `1`, reboot required).
+- [ ] Disable the **PowerShell v2 engine** entirely — it lacks AMSI/script block logging and is a classic downgrade-attack target (`optionalfeatures.exe` or `Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root`).
+- [ ] Turn on **PowerShell Script Block Logging** and **Module Logging** (`gpedit.msc → Computer Config → Admin Templates → Windows Components → Windows PowerShell`) so malicious commands leave an audit trail.
+- [ ] Enable **Attack Surface Reduction (ASR) rules** in Windows Defender, especially blocking credential theft from LSASS (`Set-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions Enabled`).
+- [ ] Enable **Controlled Folder Access** (ransomware protection) for user data folders (`Windows Security → Virus & threat protection → Manage ransomware protection`).
+- [ ] Verify **Exploit Protection** system mitigations (DEP, ASLR, CFG) are still at secure defaults, not weakened.
+- [ ] Disable **LLMNR** and **NetBIOS** name resolution to block Responder-style credential-capture attacks (`gpedit.msc → Computer Config → Admin Templates → Network → DNS Client → Turn off Multicast Name Resolution` = Enabled; adapter → WINS tab → Disable NetBIOS over TCP/IP).
+- [ ] Restrict anonymous/null session access further via `RestrictAnonymous` and `RestrictAnonymousSAM` registry values under `HKLM\SYSTEM\CurrentControlSet\Control\Lsa` (belt-and-suspenders alongside §5).
+- [ ] Clear stray saved credentials in **Credential Manager** that could let an attacker auto-authenticate as someone else.
+- [ ] If supported, confirm **Secure Boot** and **TPM** are enabled (`msinfo32`, `tpm.msc`) — relevant to Windows 11 baselines.
+- [ ] Disable the **Print Spooler** service if this machine doesn't need to print — mitigates PrintNightmare-class vulnerabilities (CVE-2021-34527).
+
+---
+
+## 11. Finals-Round Specific Notes
 
 Finals images are intentionally harder and often include intentionally "broken" components — don't just run a script and walk away.
 
