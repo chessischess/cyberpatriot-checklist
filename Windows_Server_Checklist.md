@@ -12,6 +12,7 @@
 - [ ] Screenshot the current Scoring Report score before making changes.
 - [ ] Answer forensics questions first, before the system state changes.
 - [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, open it in Wireshark and use `Statistics → Conversations` (or Endpoints) to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
+- [ ] If a forensics question asks for a file's hash, use PowerShell (`Get-FileHash -Algorithm SHA256 .\<filename>`) rather than installing a third-party tool.
 
 ## 1. Local & Domain User Accounts
 
@@ -19,6 +20,7 @@
 - [ ] Cross-reference every local AND domain account against the README's authorized user/admin list.
 - [ ] Disable or remove unauthorized accounts — disable first if unsure whether it's a service account in use.
 - [ ] Verify local Administrators group AND Domain Admins / Enterprise Admins group membership — remove unauthorized members.
+- [ ] Check membership of **every group named in the README**, not just Administrators/Domain Admins (Remote Desktop Users, Backup Operators, Event Log Readers, custom groups) — these are scored just as often.
 - [ ] Ensure the Guest account (local and domain) is disabled.
 - [ ] Do not disable the built-in Administrator account by default on a DC — some AD recovery tasks require it; only change per README.
 - [ ] Check for duplicate/stale AD accounts, accounts in the wrong OU, or accounts with unexpected UPNs.
@@ -36,7 +38,7 @@
 - [ ] Minimum password length: 8+ (14 recommended for finals).
 - [ ] Password must meet complexity requirements: Enabled.
 - [ ] Store passwords using reversible encryption: Disabled.
-- [ ] Account lockout duration / threshold / reset counter: 15–30 min, 3–5 attempts, 15–30 min.
+- [ ] Account lockout duration / threshold / reset counter: 15–30 min, **5-50 attempts (never below 5 — scored as a penalty)**, 15–30 min.
 - [ ] On member servers without a DC role, also set local Account Policy (`secpol.msc`) the same way.
 - [ ] Enforce fine-grained password policies (PSOs) only if README specifically calls for them.
 
@@ -47,7 +49,7 @@
 - [ ] Check for a GPO blocking Windows Update (Computer Config → Admin Templates → Windows Components → Windows Update) and fix it.
 - [ ] If WSUS is configured, verify the upstream server/URL is legitimate, not redirected to an attacker-controlled host.
 - [ ] Patch any other installed Microsoft server products (SQL Server, Exchange, IIS extensions) if present.
-- [ ] Update every other README-required/allowed **application** (Apache/XAMPP, third-party tools, etc.) via its own updater — not just Windows itself.
+- [ ] Update every other README-required/allowed **application** (Apache/XAMPP, third-party tools, etc.) via its own updater — not just Windows itself. Reinstall to the SAME default location — "not installed at default location" is a scored penalty.
 
 ## 4. Malware & Unauthorized Software
 
@@ -65,7 +67,7 @@
 
 - [ ] Open Server Manager → Manage → Add/Remove Roles and Features — confirm only README-required roles are installed (AD DS, DNS, DHCP, IIS, File and Storage Services, etc.).
 - [ ] Remove roles/features that are installed but not authorized — reduces attack surface and often scores points directly.
-- [ ] `services.msc` — disable unneeded, risky services not required by README (Telnet Server, FTP unless required, Remote Registry, SNMP unless required).
+- [ ] `services.msc` — disable unneeded, risky services not required by README (Telnet Server, FTP unless required, SMTP, Remote Registry, SNMP unless required).
 - [ ] Disable SMBv1 (Windows Features) — legacy, exploitable (EternalBlue).
 - [ ] Disable Windows Features not in use: TFTP Client, Telnet Client, PowerShell v2 (legacy, weaker logging) if not required.
 - [ ] If the IIS role is present but not required by README, remove it entirely rather than just stopping the service.
@@ -83,7 +85,7 @@
 - [ ] UAC settings → Enabled, Always Notify or default-and-above.
 - [ ] Review Group Policy Objects linked at domain/OU level (`gpmc.msc`) for tampering — a malicious GPO can silently re-break the whole domain.
 - [ ] Check Resultant Set of Policy (`rsop.msc` / `gpresult /h report.html`) to catch conflicts between local and domain-applied policy.
-- [ ] Enable audit policy: logon events, account management, policy change, object access, directory service access (success + failure).
+- [ ] Enable audit policy: logon events, account management, policy change, object access, directory service access (success + failure). Newer images may instead expect `Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation` — check both locations.
 - [ ] Restrict User Rights Assignment (Log on as a service / locally / from network) to only authorized accounts/groups.
 
 ## 7. Network Configuration

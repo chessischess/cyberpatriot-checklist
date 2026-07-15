@@ -10,6 +10,7 @@
 - [ ] Check current score / scoring report (`CyberPatriot Scoring Report` app in the taskbar) — screenshot it.
 - [ ] Answer the **forensics questions** first while the system is still in its original state (some answers depend on original config, e.g. "how many admin accounts", "what's in this file", "who logged in when"). Save answers as `.txt`/`.docx` in the specified location, usually `Desktop` or `Security` folder — check the README for exact naming/location.
 - [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, open it in Wireshark and use `Statistics → Conversations` (or Endpoints) to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
+- [ ] If a forensics question asks for a file's hash, use PowerShell (`Get-FileHash -Algorithm SHA256 .\<filename>`) rather than installing a third-party tool.
 
 ---
 
@@ -20,6 +21,7 @@
 - [ ] Cross-reference every account against the README's authorized user list.
 - [ ] **Delete or disable** any unauthorized/unknown local accounts (don't delete if unsure — disable first, ask/verify).
 - [ ] Verify **Administrators group** membership (`net localgroup administrators`) — remove anyone not explicitly authorized as admin in the README.
+- [ ] Check membership of **every group named in the README**, not just Administrators (Remote Desktop Users, Backup Operators, Event Log Readers, custom groups) via `lusrmgr.msc → Groups` — these are scored just as often.
 - [ ] Ensure **Guest account is disabled**.
 - [ ] Rename or disable default **Administrator account** if README specifies (usually leave enabled but secure it — check instructions).
 - [ ] Check for **hidden accounts** created via registry (`SpecialAccounts\UserList`) or accounts that don't show in `lusrmgr.msc` (`net user` from cmd shows all).
@@ -37,7 +39,7 @@
   - [ ] Store passwords using reversible encryption: **Disabled**
 - [ ] **Account Lockout Policy**
   - [ ] Account lockout duration: **15-30 min**
-  - [ ] Account lockout threshold: **3-5 invalid attempts**
+  - [ ] Account lockout threshold: **5-50 invalid attempts** — never below 5, CyberPatriot scores that as a penalty
   - [ ] Reset lockout counter after: **15-30 min**
 - [ ] Force a password change on next logon for accounts with weak/known passwords if appropriate.
 
@@ -50,7 +52,7 @@
 - [ ] Verify **Windows Defender / antivirus definitions** are up to date.
 - [ ] Check `gpedit.msc` for any GPO blocking updates (`Computer Config → Admin Templates → Windows Components → Windows Update`) — set "Configure Automatic Updates" appropriately, remove any policy disabling updates.
 - [ ] If it's a server: check **Windows Server Update Services (WSUS)** config isn't pointing somewhere malicious.
-- [ ] Update every other README-required/allowed **application** (browser, Java, Apache/XAMPP, etc.) via its own updater — not just Windows itself.
+- [ ] Update every other README-required/allowed **application** (browser, Java, Apache/XAMPP, etc.) via its own updater — not just Windows itself. Reinstall to the SAME default location — "not installed at default location" is a scored penalty.
 
 ---
 
@@ -62,6 +64,7 @@
   - Remote access tools not authorized (TeamViewer, AnyDesk, VNC, RAT-like tools)
 - [ ] Run **Windows Defender full scan** (or the AV specified in README). Quarantine/remove threats.
 - [ ] Enable **Windows Defender real-time protection**, cloud-delivered protection, tamper protection if not blocked by policy.
+- [ ] Set **Windows Defender SmartScreen** (Explorer and Edge) to Warn or Block, not disabled (`gpedit.msc → Admin Templates → Windows Components → Windows Defender SmartScreen`).
 - [ ] Check `Task Scheduler` (`taskschd.msc`) for suspicious/unauthorized scheduled tasks (backdoors, reverse shells, persistence).
 - [ ] Check **Startup apps** (`Task Manager → Startup` and `msconfig`) for unauthorized entries.
 - [ ] Check `services.msc` and running processes (`Task Manager → Details`) for unfamiliar/malicious processes; research anything unrecognized before killing.
@@ -76,6 +79,7 @@
 - [ ] `services.msc` — disable/stop unnecessary and risky services **not required by README critical services**:
   - Telnet Server/Client
   - FTP (unless required)
+  - SMTP (unless required)
   - Remote Registry
   - SNMP (unless required)
   - Simple TCP/IP Services
@@ -107,7 +111,7 @@
   - [ ] "Deny log on locally" for Guest.
   - [ ] Remove unauthorized users from "Debug programs," "Take ownership," "Act as part of the OS," "Back up files and directories" (privilege escalation vectors).
 - [ ] Ensure **UAC is enabled** (`Control Panel → User Accounts → Change User Account Control settings` — set to at least default level, not "Never notify").
-- [ ] **Audit Policy**: enable auditing for logon events, account management, policy change, object access (success + failure) so logs actually capture activity.
+- [ ] **Audit Policy**: enable auditing for logon events, account management, policy change, object access (success + failure) so logs actually capture activity. Newer images may instead expect `Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation` — check both locations.
 - [ ] Check for GPOs pushed locally that weaken security (`gpedit.msc`) — reset any suspicious custom policy to default/secure.
 
 ---
@@ -119,7 +123,7 @@
 - [ ] Review **inbound/outbound rules** for anything unauthorized or overly permissive (e.g., rules opening high-risk ports like 4444, 1337, 31337, or allowing "Any" program/port).
 - [ ] Remove rules for uninstalled/unauthorized software.
 - [ ] Check open ports: `netstat -ano` — investigate unexpected listening ports and the PID/process behind them.
-- [ ] Verify **network shares** — remove unauthorized shares (`net share`), check share + NTFS permissions on required shares match README (principle of least privilege).
+- [ ] Verify **network shares** — remove unauthorized shares (`net share`, or the `fsmgmt.msc` GUI → Shares → Stop Sharing), check share + NTFS permissions on required shares match README (principle of least privilege).
 - [ ] Check DNS settings / hosts file again (see §3) for tampering.
 
 ---

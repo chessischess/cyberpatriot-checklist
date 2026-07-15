@@ -7,7 +7,9 @@ const DATA_WINDOWS_CLIENT = [
     { t: "Answer forensics questions first, before changing the system. Save answers where README specifies.",
       d: ["Find the forensics question file/folder referenced in the README (often a Desktop shortcut or Security folder).", "Investigate each question using read-only actions (File Explorer, Event Viewer, `whoami`, etc.) — don't fix anything yet.", "Type answers into the exact file/format the README specifies (often a .docx or .txt at a specific path).", "Save the file before moving on."] },
     { t: "If a packet capture (.pcap/.pcapng) is provided as part of forensics, open it in Wireshark to identify attacker source IPs.",
-      d: ["Open the file in Wireshark (install it temporarily if needed — remove it again afterward if not README-authorized).", "Use Statistics → Conversations (or Statistics → Endpoints) to see which IPs talked to which, sorted by packet/byte count.", "Look for a source IP hitting many ports/hosts in a short time (scan pattern) or repeated failed-auth-style traffic — that's usually the attacker.", "Cross-reference suspicious IPs against the ones referenced in the forensics questions."] }
+      d: ["Open the file in Wireshark (install it temporarily if needed — remove it again afterward if not README-authorized).", "Use Statistics → Conversations (or Statistics → Endpoints) to see which IPs talked to which, sorted by packet/byte count.", "Look for a source IP hitting many ports/hosts in a short time (scan pattern) or repeated failed-auth-style traffic — that's usually the attacker.", "Cross-reference suspicious IPs against the ones referenced in the forensics questions."] },
+    { t: "If a forensics question asks for a file's hash, use PowerShell's Get-FileHash rather than installing a third-party tool.",
+      d: ["Shift+right-click the Desktop (or the file's folder) in empty space and select 'Open PowerShell window here'.", "Run `Get-FileHash -Algorithm SHA256 .\\<filename>` (swap in MD5/SHA1 if the question asks for a different algorithm).", "The answer is the value shown under `Hash`."] }
   ]
 },
 {
@@ -21,6 +23,8 @@ const DATA_WINDOWS_CLIENT = [
       d: ["In lusrmgr.msc → Users, right-click the account.", "Choose Properties → check 'Account is disabled' → OK (safer, reversible).", "If certain it's malicious and not needed for anything, right-click → Delete instead.", "Do not delete an account you are unsure about — disable it and move on."] },
     { t: "Verify Administrators group membership (net localgroup administrators) — remove unauthorized admins.",
       d: ["Open Command Prompt as Administrator, run `net localgroup administrators`.", "Compare the listed members against your authorized-admin notes.", "To remove someone: `net localgroup administrators <username> /delete`.", "To add someone authorized who's missing: `net localgroup administrators <username> /add`."] },
+    { t: "Check membership of EVERY group named in the README, not just Administrators (Remote Desktop Users, Backup Operators, Event Log Readers, custom groups, etc.).",
+      d: ["Press Win+R, type `lusrmgr.msc`, press Enter, click Groups.", "Double-click each group referenced by name in the README and compare its Members list against what's authorized.", "Select an unauthorized member and click Remove; click Add to add a missing authorized member.", "CyberPatriot answer keys score custom/non-Administrators group membership just as often as the Administrators group — don't skip these."] },
     { t: "Ensure Guest account is disabled.",
       d: ["In lusrmgr.msc → Users, right-click 'Guest' → Properties.", "Check 'Account is disabled' → OK.", "Verify from cmd: `net user Guest` and confirm 'Account active' shows 'No'."] },
     { t: "Rename/disable default Administrator account only if README specifies.",
@@ -47,8 +51,8 @@ const DATA_WINDOWS_CLIENT = [
       d: ["In secpol.msc → Account Policies → Password Policy → Store passwords using reversible encryption.", "Double-click, select Disabled, click OK."] },
     { t: "Account lockout duration: 15–30 min.",
       d: ["In secpol.msc → Account Policies → Account Lockout Policy → Account lockout duration.", "Double-click, set to a value between 15 and 30, click OK."] },
-    { t: "Account lockout threshold: 3–5 invalid attempts.",
-      d: ["In secpol.msc → Account Policies → Account Lockout Policy → Account lockout threshold.", "Double-click, set to a value between 3 and 5, click OK.", "Accept the auto-suggested related settings dialog if it appears."] },
+    { t: "Account lockout threshold: 5–50 invalid attempts — never below 5, CyberPatriot penalizes that.",
+      d: ["In secpol.msc → Account Policies → Account Lockout Policy → Account lockout threshold.", "Double-click, set to a value between 5 and 50 (never under 5 — a threshold under 5 is a scored penalty, not a fix), click OK.", "Accept the auto-suggested related settings dialog if it appears."] },
     { t: "Reset lockout counter after: 15–30 min.",
       d: ["In secpol.msc → Account Policies → Account Lockout Policy → Reset account lockout counter after.", "Double-click, set to a value between 15 and 30, click OK."] },
     { t: "Force password change on next logon for accounts with weak/known passwords if appropriate.",
@@ -69,7 +73,7 @@ const DATA_WINDOWS_CLIENT = [
     { t: "If server: verify WSUS config isn't pointing somewhere malicious.",
       d: ["Not applicable on a pure Windows 10/11 client unless a WSUS GPO was pushed — check gpedit.msc under the same Windows Update path for 'Specify intranet Microsoft update service location'.", "If set to a suspicious URL, set the policy to Disabled/Not Configured to fall back to Microsoft's servers."] },
     { t: "Update every other README-required/allowed application (browser, Java, Apache/XAMPP, etc.), not just Windows itself.",
-      d: ["Open each required application and use its own 'Check for updates' feature, or check `appwiz.cpl` for outdated versions.", "For apps with no auto-updater, download the latest installer from the vendor and reinstall over the existing version."] }
+      d: ["Open each required application and use its own 'Check for updates' feature, or check `appwiz.cpl` for outdated versions.", "For apps with no auto-updater, download the latest installer from the vendor and reinstall over the existing version.", "Install/reinstall to the SAME default location the README-required app already uses — CyberPatriot scores 'not installed at default location' as a penalty even if the app still works."] }
   ]
 },
 {
@@ -85,6 +89,8 @@ const DATA_WINDOWS_CLIENT = [
       d: ["Open Windows Security → Virus & threat protection → Scan options.", "Select 'Full scan' → Scan now.", "When finished, review Protection history and remove/quarantine anything flagged."] },
     { t: "Enable Defender real-time protection, cloud-delivered protection, tamper protection.",
       d: ["Open Windows Security → Virus & threat protection → Manage settings.", "Toggle on Real-time protection, Cloud-delivered protection, Automatic sample submission, and Tamper Protection."] },
+    { t: "Set Windows Defender SmartScreen (Explorer and Edge) to Warn or Block, not disabled.",
+      d: ["Press Win+R, type `gpedit.msc`, press Enter.", "Navigate to Computer Configuration → Administrative Templates → Windows Components → Windows Defender SmartScreen → Explorer.", "Double-click 'Configure Windows Defender SmartScreen', select Enabled, set the option to 'Warn', click OK.", "Repeat for the Microsoft Edge SmartScreen settings in the same Windows Components tree.", "Alternatively check via Settings → Privacy & security → Windows Security → App & browser control."] },
     { t: "Check Task Scheduler (taskschd.msc) for suspicious/unauthorized scheduled tasks.",
       d: ["Press Win+R, type `taskschd.msc`, press Enter.", "Expand Task Scheduler Library and review every task, especially ones you don't recognize or that run scripts/executables from Temp or AppData.", "Right-click a suspicious task → Disable, or Delete if clearly malicious."] },
     { t: "Check Startup apps (Task Manager / msconfig) for unauthorized entries.",
@@ -102,7 +108,7 @@ const DATA_WINDOWS_CLIENT = [
 {
   title: "4. Services & Windows Features",
   items: [
-    { t: "services.msc — disable/stop unneeded, risky services not required by README (Telnet, FTP, Remote Registry, SNMP, Simple TCP/IP, Fax).",
+    { t: "services.msc — disable/stop unneeded, risky services not required by README (Telnet, FTP, SMTP, Remote Registry, SNMP, Simple TCP/IP, Fax).",
       d: ["Press Win+R, type `services.msc`, press Enter.", "Find each risky service, right-click → Properties.", "Set Startup type to Disabled, click Stop if currently running, then OK."] },
     { t: "Turn Windows features on/off: disable Telnet Client, TFTP Client, SMB1/CIFS support (unless required).",
       d: ["Press Win+R, type `optionalfeatures.exe`, press Enter.", "Untick Telnet Client, TFTP Client, and SMB 1.0/CIFS File Sharing Support.", "Click OK and reboot if prompted."] },
@@ -148,7 +154,7 @@ const DATA_WINDOWS_CLIENT = [
     { t: "Confirm UAC is enabled via Control Panel (not set to Never Notify).",
       d: ["Search 'Change User Account Control settings' in the Start menu and open it.", "Verify the slider is not at the bottom ('Never notify').", "Move it up at least one level, click OK."] },
     { t: "Enable audit policy for logon events, account management, policy change, object access.",
-      d: ["In secpol.msc → Local Policies → Audit Policy.", "Double-click each of: Audit account logon events, Audit account management, Audit logon events, Audit policy change, Audit object access.", "Check both Success and Failure for each, click OK."] },
+      d: ["In secpol.msc → Local Policies → Audit Policy.", "Double-click each of: Audit account logon events, Audit account management, Audit logon events, Audit policy change, Audit object access.", "Check both Success and Failure for each, click OK.", "Newer CyberPatriot images may instead expect Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation (and similar subcategories) — check both locations and set Success (and Failure where relevant) there too."] },
     { t: "Check gpedit.msc for suspicious custom policies weakening security — reset to secure defaults.",
       d: ["Open gpedit.msc and browse Computer Configuration → Administrative Templates, especially Windows Components → Windows Defender and Windows Update.", "Look for anything set to Disabled that should be Enabled (e.g. Defender turned off via policy).", "Set suspicious policies back to Not Configured or the secure value, click OK."] }
   ]
@@ -166,8 +172,8 @@ const DATA_WINDOWS_CLIENT = [
       d: ["In wf.msc → Inbound/Outbound Rules, look for rules named after software you already uninstalled in Section 3.", "Right-click → Delete each leftover rule."] },
     { t: "Check netstat -ano for unexpected listening ports and investigate the owning process.",
       d: ["Open Command Prompt as Administrator, run `netstat -ano`.", "Note any LISTENING port you don't recognize and its PID.", "Run `tasklist /svc /fi \"PID eq <pid>\"` or check Task Manager → Details to identify the process, then investigate/remove it if malicious."] },
-    { t: "Review network shares (net share) — remove unauthorized ones, check share + NTFS permissions.",
-      d: ["Open Command Prompt as Administrator, run `net share` to list all shares.", "For unauthorized shares, run `net share <sharename> /delete`.", "For required shares, right-click the folder in File Explorer → Properties → Sharing/Security tabs to tighten permissions to least privilege."] },
+    { t: "Review network shares (net share, or the fsmgmt.msc GUI) — remove unauthorized ones, check share + NTFS permissions.",
+      d: ["Open Command Prompt as Administrator, run `net share` to list all shares.", "For unauthorized shares, run `net share <sharename> /delete` — or press Win+R, type `fsmgmt.msc`, click Shares, right-click the share, and select Stop Sharing.", "For required shares, right-click the folder in File Explorer → Properties → Sharing/Security tabs to tighten permissions to least privilege."] },
     { t: "Re-check hosts file / DNS settings for tampering.",
       d: ["Repeat the hosts file check from Section 3.", "Also check adapter DNS settings: Network adapter Properties → Internet Protocol Version 4 → Properties, confirm DNS servers are legitimate (not an unexpected external IP)."] }
   ]

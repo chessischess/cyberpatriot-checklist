@@ -9,7 +9,9 @@ const DATA_WINDOWS_SERVER = [
     { t: "Answer forensics questions first, before the system state changes.",
       d: ["Locate the forensics question file per the README.", "Investigate read-only first (Event Viewer, AD Users and Computers, file browsing) before making fixes.", "Save your answers in the exact format/location specified."] },
     { t: "If a packet capture (.pcap/.pcapng) is provided as part of forensics, open it in Wireshark to identify attacker source IPs.",
-      d: ["Open the file in Wireshark (install it temporarily if needed — remove it again afterward if not README-authorized).", "Use Statistics → Conversations (or Statistics → Endpoints) to see which IPs talked to which, sorted by packet/byte count.", "Look for a source IP hitting many ports/hosts in a short time (scan pattern) or repeated failed-auth-style traffic — that's usually the attacker.", "Cross-reference suspicious IPs against the ones referenced in the forensics questions."] }
+      d: ["Open the file in Wireshark (install it temporarily if needed — remove it again afterward if not README-authorized).", "Use Statistics → Conversations (or Statistics → Endpoints) to see which IPs talked to which, sorted by packet/byte count.", "Look for a source IP hitting many ports/hosts in a short time (scan pattern) or repeated failed-auth-style traffic — that's usually the attacker.", "Cross-reference suspicious IPs against the ones referenced in the forensics questions."] },
+    { t: "If a forensics question asks for a file's hash, use PowerShell's Get-FileHash rather than installing a third-party tool.",
+      d: ["Shift+right-click the Desktop (or the file's folder) in empty space and select 'Open PowerShell window here'.", "Run `Get-FileHash -Algorithm SHA256 .\\<filename>` (swap in MD5/SHA1 if the question asks for a different algorithm).", "The answer is the value shown under `Hash`."] }
   ]
 },
 {
@@ -23,6 +25,8 @@ const DATA_WINDOWS_SERVER = [
       d: ["Right-click the account → Properties (dsa.msc) or Properties (lusrmgr.msc) → check/tick 'Account is disabled', click OK.", "If certain it's not a needed service account and is malicious, right-click → Delete instead."] },
     { t: "Verify local Administrators group AND Domain Admins / Enterprise Admins group membership — remove unauthorized members.",
       d: ["Open Command Prompt as Administrator, run `net localgroup administrators` for local admins.", "In dsa.msc, open the 'Users' container, double-click 'Domain Admins' → Members tab; repeat for 'Enterprise Admins'.", "Select an unauthorized member and click Remove; click Add to add an authorized member."] },
+    { t: "Check membership of EVERY group named in the README, not just Administrators/Domain Admins (Remote Desktop Users, Backup Operators, Event Log Readers, custom groups, etc.).",
+      d: ["lusrmgr.msc (local) or dsa.msc (domain) → Groups/Users container.", "Double-click each group referenced by name in the README and compare its Members list against what's authorized.", "Select an unauthorized member and click Remove; click Add to add a missing authorized member.", "CyberPatriot answer keys score custom/non-Administrators group membership just as often as the Administrators group — don't skip these."] },
     { t: "Ensure the Guest account (local and domain) is disabled.",
       d: ["lusrmgr.msc → Users → right-click Guest → Properties → check 'Account is disabled' → OK.", "dsa.msc → Users container → right-click Guest → Disable Account."] },
     { t: "Do not disable the built-in Administrator account by default on a DC — some AD recovery tasks require it; only change per README.",
@@ -56,8 +60,8 @@ const DATA_WINDOWS_SERVER = [
       d: ["Same node → Password must meet complexity requirements.", "Double-click, select Enabled, click OK."] },
     { t: "Store passwords using reversible encryption: Disabled.",
       d: ["Same node → Store passwords using reversible encryption.", "Double-click, select Disabled, click OK."] },
-    { t: "Account lockout duration / threshold / reset counter: 15–30 min, 3–5 attempts, 15–30 min.",
-      d: ["Go to Account Lockout Policy in the same Group Policy Editor.", "Set Account lockout duration to 15-30, Account lockout threshold to 3-5, Reset account lockout counter after to 15-30.", "Accept any auto-suggested related settings prompts."] },
+    { t: "Account lockout duration / threshold / reset counter: 15–30 min, 5–50 attempts (never below 5), 15–30 min.",
+      d: ["Go to Account Lockout Policy in the same Group Policy Editor.", "Set Account lockout duration to 15-30, Account lockout threshold to 5-50 (never under 5 — a threshold under 5 is a scored penalty, not a fix), Reset account lockout counter after to 15-30.", "Accept any auto-suggested related settings prompts."] },
     { t: "On member servers without a DC role, also set local Account Policy (secpol.msc) the same way.",
       d: ["Press Win+R, type `secpol.msc` on the member server.", "Repeat the same Password Policy and Account Lockout Policy settings locally as done above for the domain."] },
     { t: "Enforce fine-grained password policies (PSOs) only if README specifically calls for them.",
@@ -78,7 +82,7 @@ const DATA_WINDOWS_SERVER = [
     { t: "Patch any other installed Microsoft server products (SQL Server, Exchange, IIS extensions) if present.",
       d: ["Open the relevant product's update mechanism (e.g. SQL Server Installation Center, Microsoft Update Catalog) and install available patches per the README's allowances."] },
     { t: "Update every other README-required/allowed application (Apache/XAMPP, third-party tools, etc.), not just Windows itself.",
-      d: ["Open each required application and use its own 'Check for updates' feature, or check `appwiz.cpl` for outdated versions.", "For apps with no auto-updater, download the latest installer from the vendor and reinstall over the existing version."] }
+      d: ["Open each required application and use its own 'Check for updates' feature, or check `appwiz.cpl` for outdated versions.", "For apps with no auto-updater, download the latest installer from the vendor and reinstall over the existing version.", "Install/reinstall to the SAME default location the README-required app already uses — CyberPatriot scores 'not installed at default location' as a penalty even if the app still works."] }
   ]
 },
 {
@@ -111,7 +115,7 @@ const DATA_WINDOWS_SERVER = [
       d: ["Open Server Manager → Manage menu (top right) → Remove Roles and Features (or Add Roles and Features to check what's installed).", "Step through the wizard to Server Roles and note everything currently checked."] },
     { t: "Remove roles/features that are installed but not authorized — reduces attack surface and often scores points directly.",
       d: ["In the same Remove Roles and Features wizard, untick unauthorized roles/features.", "Click Next through the wizard and click Remove, reboot if prompted."] },
-    { t: "services.msc — disable unneeded, risky services not required by README (Telnet Server, FTP unless required, Remote Registry, SNMP unless required).",
+    { t: "services.msc — disable unneeded, risky services not required by README (Telnet Server, FTP unless required, SMTP, Remote Registry, SNMP unless required).",
       d: ["Press Win+R, type `services.msc`.", "Right-click each risky service → Properties → Startup type: Disabled → Stop if running → OK."] },
     { t: "Disable SMBv1 (Windows Features) — legacy, exploitable (EternalBlue).",
       d: ["Server Manager → Manage → Remove Roles and Features → Features page → untick 'SMB 1.0/CIFS File Sharing Support', or in PowerShell run `Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol`."] },
@@ -147,7 +151,7 @@ const DATA_WINDOWS_SERVER = [
     { t: "Check Resultant Set of Policy (rsop.msc / gpresult /h report.html) to catch conflicts between local and domain-applied policy.",
       d: ["Press Win+R, type `rsop.msc`, review effective settings.", "Or open an admin Command Prompt and run `gpresult /h report.html`, then open the generated HTML file to see exactly which GPO is winning each setting."] },
     { t: "Enable audit policy: logon events, account management, policy change, object access, directory service access (success + failure).",
-      d: ["In the relevant policy editor → Local Policies → Audit Policy.", "Enable Success and Failure for: Audit account logon events, Audit account management, Audit logon events, Audit policy change, Audit object access, Audit directory service access."] },
+      d: ["In the relevant policy editor → Local Policies → Audit Policy.", "Enable Success and Failure for: Audit account logon events, Audit account management, Audit logon events, Audit policy change, Audit object access, Audit directory service access.", "Newer CyberPatriot images may instead expect Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation (and similar subcategories) — check both locations and set Success (and Failure where relevant) there too."] },
     { t: "Restrict User Rights Assignment (Log on as a service / locally / from network) to only authorized accounts/groups.",
       d: ["Local Policies → User Rights Assignment.", "Edit 'Log on as a service', 'Allow log on locally', 'Access this computer from the network' — remove unauthorized accounts, add back only what's authorized."] }
   ]
