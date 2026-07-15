@@ -8,13 +8,10 @@
 
 ## 0. Before You Touch Anything
 
-- [ ] Read the README fully. Note authorized users/admins, required roles (AD DS, DNS, DHCP, IIS, File Services...), critical services, prohibited software.
 - [ ] Identify the server's role(s): standalone server, member server, or Domain Controller (check with Server Manager dashboard / presence of `dsa.msc`).
-- [ ] Note critical services from README — securing ≠ disabling. A DC that stops responding to DNS/AD kills the whole domain's score.
 - [ ] Screenshot the current Scoring Report score before making changes.
 - [ ] Answer forensics questions first, before the system state changes.
-- [ ] Confirm OS build (`winver` / Server Manager dashboard) — 2016 vs 2019 vs 2022 changes some UI paths.
-- [ ] Do NOT demote a Domain Controller, remove roles, or disconnect the network unless the README explicitly instructs it.
+- [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, open it in Wireshark and use `Statistics → Conversations` (or Endpoints) to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
 
 ## 1. Local & Domain User Accounts
 
@@ -50,6 +47,7 @@
 - [ ] Check for a GPO blocking Windows Update (Computer Config → Admin Templates → Windows Components → Windows Update) and fix it.
 - [ ] If WSUS is configured, verify the upstream server/URL is legitimate, not redirected to an attacker-controlled host.
 - [ ] Patch any other installed Microsoft server products (SQL Server, Exchange, IIS extensions) if present.
+- [ ] Update every other README-required/allowed **application** (Apache/XAMPP, third-party tools, etc.) via its own updater — not just Windows itself.
 
 ## 4. Malware & Unauthorized Software
 
@@ -95,7 +93,6 @@
 - [ ] Verify valid forward (A) DNS records exist with correct naming; verify PTR records exist for reverse lookups.
 - [ ] Test name resolution with `nslookup` / `Resolve-DnsName` for the server and other domain hosts.
 - [ ] Ensure NTP/time sync is correct — a DC should sync to a reliable external time source; member servers sync to the DC (`w32tm /query /status`).
-- [ ] Disable unused network protocols/services (e.g., unneeded IPv6 only if README explicitly requests it).
 
 ## 8. Firewall
 
@@ -139,6 +136,7 @@
 - [ ] SQL Server (if installed): check for a default/blank `sa` password, disable `xp_cmdshell`, use least-privilege service accounts.
 - [ ] File and Storage Services: audit shares (Computer Management → Shared Folders) — remove unauthorized shares, tighten share + NTFS permissions to least privilege.
 - [ ] FTP (if required): disable anonymous access, prefer FTPS, restrict to necessary users only.
+- [ ] Apache (e.g. XAMPP, if installed/required): disable server signature — set `ServerSignature Off` and `ServerTokens Prod` in `httpd.conf`, then restart Apache.
 
 ## 13. Remote Access (RDP / WinRM / PowerShell Remoting)
 
@@ -216,6 +214,7 @@
 | Services | `services.msc` |
 | Task Scheduler | `taskschd.msc` |
 | Computer Management | `compmgmt.msc` |
+| Shared Folders (GUI) | `fsmgmt.msc` |
 | AD replication summary | `repadmin /replsummary` |
 | Show FSMO role holders | `netdom query fsmo` |
 | Time sync status | `w32tm /query /status` |

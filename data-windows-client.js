@@ -2,18 +2,12 @@ const DATA_WINDOWS_CLIENT = [
 {
   title: "0. Before You Touch Anything",
   items: [
-    { t: "Read the README fully. Note every authorized user/admin, required critical services, prohibited software, special instructions.",
-      d: ["Open the README (usually on the Desktop or in the competition portal).", "Read it top to bottom once without changing anything.", "Write down (on paper or a text file outside the VM) every named user, their admin/standard status, every required service, and every explicitly prohibited item.", "Re-read it a second time — competitors consistently miss a line on the first pass."] },
-    { t: "Note critical services from README — do NOT disable these, only secure them.",
-      d: ["Highlight or list each service named as required (e.g. 'this machine must keep running a web server').", "Check its current state: press Win+R, type `services.msc`, press Enter, find the service, confirm Status = Running and Startup type = Automatic.", "Plan to re-check this exact service after every major change you make."] },
     { t: "Check current score in the Scoring Report app — screenshot it.",
       d: ["Open the CyberPatriot Scoring Report application from the taskbar/desktop icon.", "Press the Windows key + Shift + S (or PrtScn) to capture the score screen.", "Save the screenshot somewhere you'll remember (Desktop\\Screenshots) — you'll want timestamped snapshots every 15-20 minutes."] },
     { t: "Answer forensics questions first, before changing the system. Save answers where README specifies.",
       d: ["Find the forensics question file/folder referenced in the README (often a Desktop shortcut or Security folder).", "Investigate each question using read-only actions (File Explorer, Event Viewer, `whoami`, etc.) — don't fix anything yet.", "Type answers into the exact file/format the README specifies (often a .docx or .txt at a specific path).", "Save the file before moving on."] },
-    { t: "Identify OS version (winver) and whether it's workstation or server.",
-      d: ["Press Win+R, type `winver`, press Enter to see the exact build.", "Alternatively open Settings → System → About.", "Confirm this is Windows 10/11 (client) and not a Server SKU — that changes which checklist applies."] },
-    { t: "Do NOT disconnect network unless README explicitly says to.",
-      d: ["Leave the network adapter enabled by default.", "Only go to Control Panel → Network and Sharing Center → Change adapter settings → disable an adapter if the README explicitly instructs it."] }
+    { t: "If a packet capture (.pcap/.pcapng) is provided as part of forensics, open it in Wireshark to identify attacker source IPs.",
+      d: ["Open the file in Wireshark (install it temporarily if needed — remove it again afterward if not README-authorized).", "Use Statistics → Conversations (or Statistics → Endpoints) to see which IPs talked to which, sorted by packet/byte count.", "Look for a source IP hitting many ports/hosts in a short time (scan pattern) or repeated failed-auth-style traffic — that's usually the attacker.", "Cross-reference suspicious IPs against the ones referenced in the forensics questions."] }
   ]
 },
 {
@@ -73,7 +67,9 @@ const DATA_WINDOWS_CLIENT = [
     { t: "Check gpedit.msc for a GPO blocking updates — fix Configure Automatic Updates policy.",
       d: ["Press Win+R, type `gpedit.msc`, press Enter.", "Navigate to Computer Configuration → Administrative Templates → Windows Components → Windows Update.", "Find 'Configure Automatic Updates' — if Disabled or misconfigured, set to Enabled (or Not Configured) so Settings can manage updates.", "Also check 'Do not connect to any Windows Update Internet locations' — should be Disabled/Not Configured."] },
     { t: "If server: verify WSUS config isn't pointing somewhere malicious.",
-      d: ["Not applicable on a pure Windows 10/11 client unless a WSUS GPO was pushed — check gpedit.msc under the same Windows Update path for 'Specify intranet Microsoft update service location'.", "If set to a suspicious URL, set the policy to Disabled/Not Configured to fall back to Microsoft's servers."] }
+      d: ["Not applicable on a pure Windows 10/11 client unless a WSUS GPO was pushed — check gpedit.msc under the same Windows Update path for 'Specify intranet Microsoft update service location'.", "If set to a suspicious URL, set the policy to Disabled/Not Configured to fall back to Microsoft's servers."] },
+    { t: "Update every other README-required/allowed application (browser, Java, Apache/XAMPP, etc.), not just Windows itself.",
+      d: ["Open each required application and use its own 'Check for updates' feature, or check `appwiz.cpl` for outdated versions.", "For apps with no auto-updater, download the latest installer from the vendor and reinstall over the existing version."] }
   ]
 },
 {
@@ -83,12 +79,8 @@ const DATA_WINDOWS_CLIENT = [
       d: ["Press Win+R, type `appwiz.cpl`, press Enter.", "Sort by name and scroll through the full list.", "Note every program not on the README's authorized list."] },
     { t: "Uninstall hacking tools (Wireshark, Nmap, Cain & Abel, Metasploit, netcat, John, hydra, etc.).",
       d: ["In appwiz.cpl, select the tool and click Uninstall, following any prompts.", "For tools installed without an uninstaller entry, delete the install folder and any Start Menu/desktop shortcuts manually."] },
-    { t: "Uninstall P2P/torrent software (uTorrent, BitTorrent, LimeWire).",
-      d: ["In appwiz.cpl, select the program, click Uninstall.", "Delete leftover shortcuts and downloaded torrent files if found."] },
     { t: "Uninstall unauthorized remote access tools (TeamViewer, AnyDesk, VNC, RAT-like tools).",
       d: ["In appwiz.cpl, uninstall each unauthorized remote-access program.", "Also check services.msc for a leftover service (e.g. TeamViewer service) still running after uninstall and stop/disable it if present."] },
-    { t: "Uninstall old/vulnerable software versions and unauthorized games.",
-      d: ["In appwiz.cpl, identify outdated versions (e.g. old Java, Flash, Adobe Reader) and uninstall unless the README requires them.", "Uninstall any games not part of the authorized software list."] },
     { t: "Run a full Windows Defender (or specified AV) scan — quarantine/remove threats.",
       d: ["Open Windows Security → Virus & threat protection → Scan options.", "Select 'Full scan' → Scan now.", "When finished, review Protection history and remove/quarantine anything flagged."] },
     { t: "Enable Defender real-time protection, cloud-delivered protection, tamper protection.",
@@ -99,10 +91,8 @@ const DATA_WINDOWS_CLIENT = [
       d: ["Press Ctrl+Shift+Esc to open Task Manager → Startup tab.", "Disable anything unauthorized or unrecognized.", "Also run `msconfig` (Win+R) → Startup tab as a cross-check on older systems."] },
     { t: "Check services.msc and running processes for unfamiliar/malicious items — research before killing.",
       d: ["Press Win+R, type `services.msc`, press Enter — scan for unfamiliar service names.", "Press Ctrl+Shift+Esc → Details tab, sort by name, look for unfamiliar .exe processes.", "Right-click a process → Open file location to see where it runs from before deciding to end it.", "If confirmed malicious: right-click → End task, then remove its files and any Run key/service entry."] },
-    { t: "Check for unauthorized browser extensions; reset hijacked homepage/settings.",
-      d: ["In Chrome: address bar → chrome://extensions → remove unauthorized entries.", "In Edge: edge://extensions.", "Go to Settings → search engine/homepage and reset to a default/expected value if hijacked."] },
-    { t: "Search AppData\\Roaming, Local\\Temp, ProgramData, Windows\\Temp for suspicious exe/bat/ps1/vbs files.",
-      d: ["Open File Explorer, enable 'Show hidden items' (View tab).", "Navigate to C:\\Users\\<user>\\AppData\\Roaming and C:\\Users\\<user>\\AppData\\Local\\Temp.", "Also check C:\\ProgramData and C:\\Windows\\Temp.", "Use the search box to filter by *.exe, *.bat, *.ps1, *.vbs and investigate unfamiliar hits."] },
+    { t: "Search AppData\\Roaming, Local\\Temp, ProgramData, Windows\\Temp, and C:\\Users\\Public\\Downloads for suspicious exe/bat/ps1/vbs files.",
+      d: ["Open File Explorer, enable 'Show hidden items' (View tab).", "Navigate to C:\\Users\\<user>\\AppData\\Roaming and C:\\Users\\<user>\\AppData\\Local\\Temp.", "Also check C:\\ProgramData, C:\\Windows\\Temp, and C:\\Users\\Public\\Downloads (a common drop location competitors forget to check).", "Use the search box to filter by *.exe, *.bat, *.ps1, *.vbs and investigate unfamiliar hits."] },
     { t: "Check hosts file (System32\\drivers\\etc\\hosts) for malicious redirects.",
       d: ["Open Notepad as Administrator.", "File → Open → C:\\Windows\\System32\\drivers\\etc\\hosts (set file type filter to 'All Files').", "Remove any lines beyond the default localhost entries that redirect a legitimate domain to a different IP.", "Save the file."] },
     { t: "Check registry Run/RunOnce keys (HKLM and HKCU) for persistence entries.",
@@ -125,9 +115,7 @@ const DATA_WINDOWS_CLIENT = [
     { t: "Disable AutoPlay/AutoRun for all drives via gpedit.msc.",
       d: ["Press Win+R, type `gpedit.msc`, press Enter.", "Navigate to Computer Configuration → Administrative Templates → Windows Components → AutoPlay Policies.", "Double-click 'Turn off AutoPlay', set to Enabled, set 'Turn off AutoPlay on' to All drives, click OK."] },
     { t: "Disable SMBv1 entirely.",
-      d: ["Open PowerShell as Administrator.", "Run `Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol`.", "Or via optionalfeatures.exe, untick 'SMB 1.0/CIFS File Sharing Support' and reboot."] },
-    { t: "Review optional features for anything unusual (unneeded server roles on a workstation).",
-      d: ["In optionalfeatures.exe, scan the full list for anything that shouldn't be on a standard workstation (e.g. Hyper-V, IIS, Telnet Server) and untick if unauthorized."] }
+      d: ["Open PowerShell as Administrator.", "Run `Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol`.", "Or via optionalfeatures.exe, untick 'SMB 1.0/CIFS File Sharing Support' and reboot."] }
   ]
 },
 {
@@ -149,8 +137,6 @@ const DATA_WINDOWS_CLIENT = [
       d: ["In secpol.msc → Local Policies → Security Options → Network security: LAN Manager authentication level.", "Double-click, select 'Send NTLMv2 response only. Refuse LM & NTLM', click OK."] },
     { t: "Microsoft network server: digitally sign communications (always) → Enabled.",
       d: ["In secpol.msc → Local Policies → Security Options → Microsoft network server: Digitally sign communications (always).", "Double-click, select Enabled, click OK."] },
-    { t: "Prevent users from installing printer drivers → Enabled (context dependent).",
-      d: ["In secpol.msc → Local Policies → Security Options → Devices: Prevent users from installing printer drivers.", "Double-click, select Enabled, click OK (skip if README requires standard users to add printers)."] },
     { t: "UAC settings → Enabled, Always Notify or default-and-above.",
       d: ["Press Win+R, type `UserAccountControlSettings`, press Enter (or search 'Change User Account Control settings').", "Move the slider to 'Always notify' or at least the default level.", "Click OK."] },
     { t: "User Rights Assignment: restrict Log on as a service / locally / network access to authorized accounts.",
@@ -182,12 +168,8 @@ const DATA_WINDOWS_CLIENT = [
       d: ["Open Command Prompt as Administrator, run `netstat -ano`.", "Note any LISTENING port you don't recognize and its PID.", "Run `tasklist /svc /fi \"PID eq <pid>\"` or check Task Manager → Details to identify the process, then investigate/remove it if malicious."] },
     { t: "Review network shares (net share) — remove unauthorized ones, check share + NTFS permissions.",
       d: ["Open Command Prompt as Administrator, run `net share` to list all shares.", "For unauthorized shares, run `net share <sharename> /delete`.", "For required shares, right-click the folder in File Explorer → Properties → Sharing/Security tabs to tighten permissions to least privilege."] },
-    { t: "Only disable IPv6 if README explicitly says to.",
-      d: ["Control Panel → Network and Sharing Center → Change adapter settings.", "Right-click the active adapter → Properties, untick Internet Protocol Version 6 (TCP/IPv6) only if instructed, click OK."] },
     { t: "Re-check hosts file / DNS settings for tampering.",
-      d: ["Repeat the hosts file check from Section 3.", "Also check adapter DNS settings: Network adapter Properties → Internet Protocol Version 4 → Properties, confirm DNS servers are legitimate (not an unexpected external IP)."] },
-    { t: "Adjust ICMP firewall rules only if README requires it.",
-      d: ["In wf.msc → Inbound Rules, locate 'File and Printer Sharing (Echo Request...)' rules for ICMPv4/v6.", "Enable or disable per the README's specific ping/ICMP requirement only."] }
+      d: ["Repeat the hosts file check from Section 3.", "Also check adapter DNS settings: Network adapter Properties → Internet Protocol Version 4 → Properties, confirm DNS servers are legitimate (not an unexpected external IP)."] }
   ]
 },
 {
@@ -221,7 +203,9 @@ const DATA_WINDOWS_CLIENT = [
     { t: "Domain Controller: check AD users/groups/OUs vs README, review GPOs for tampering, verify DNS zones.",
       d: ["Not applicable to a standalone Windows 10/11 client — see the Windows Server checklist if this machine is actually a DC."] },
     { t: "FTP: disable anonymous access, use TLS if possible, restrict to necessary users.",
-      d: ["Open IIS Manager, select the FTP site.", "Double-click 'FTP Authentication', ensure Anonymous Authentication is Disabled and Basic/other required Authentication is Enabled.", "Double-click 'FTP SSL Settings' to require SSL if a certificate is available and README allows it.", "Use 'FTP Authorization Rules' to restrict access to specific authorized users only."] }
+      d: ["Open IIS Manager, select the FTP site.", "Double-click 'FTP Authentication', ensure Anonymous Authentication is Disabled and Basic/other required Authentication is Enabled.", "Double-click 'FTP SSL Settings' to require SSL if a certificate is available and README allows it.", "Use 'FTP Authorization Rules' to restrict access to specific authorized users only."] },
+    { t: "Apache (e.g. XAMPP, if installed and required): disable ServerSignature and set ServerTokens to hide version info.",
+      d: ["Open the Apache config file (`httpd.conf`, often under `C:\\xampp\\apache\\conf\\httpd.conf`) in a text editor.", "Find `ServerSignature On` and change it to `ServerSignature Off`.", "Find (or add) `ServerTokens` and set it to `ServerTokens Prod`.", "Save the file, then restart Apache (via the XAMPP Control Panel or `httpd -k restart`)."] }
   ]
 },
 {
@@ -303,6 +287,7 @@ const QUICK_REF_WINDOWS_CLIENT = [
   ["Computer Management", "compmgmt.msc"],
   ["Windows Features", "optionalfeatures.exe"],
   ["System Config", "msconfig"],
+  ["Shared Folders (GUI)", "fsmgmt.msc"],
   ["Network shares", "net share"],
   ["List all users", "net user"],
   ["Admin group members", "net localgroup administrators"],

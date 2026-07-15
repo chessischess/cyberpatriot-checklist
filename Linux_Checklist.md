@@ -8,13 +8,10 @@
 
 ## 0. Before You Touch Anything
 
-- [ ] Read the README fully. Note authorized users, required critical services, prohibited software, special instructions.
 - [ ] Identify distro and version: `cat /etc/os-release` (Ubuntu/Debian use apt; RHEL/CentOS/Fedora use yum/dnf).
-- [ ] Note critical services from README — securing ≠ disabling.
 - [ ] Screenshot the current Scoring Report/score before making changes.
 - [ ] Answer forensics questions first, before the system state changes: `cat`, `less`, `grep`, `find` as needed.
-- [ ] Do NOT disconnect the network or reboot into single-user/recovery mode unless the README says to.
-- [ ] Get a baseline: `whoami`, `id`, `uname -a`, `w`, `last -a`.
+- [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, inspect it with `tcpdump -nr <file>.pcap` or Wireshark's `Statistics → Conversations` to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
 
 ## 1. User Accounts & Groups
 
@@ -60,7 +57,6 @@
 
 - [ ] Compare installed packages (`dpkg -l` or `rpm -qa`) against the README's authorized software list.
 - [ ] Uninstall hacking/pentest tools if unauthorized: nmap, wireshark, netcat/ncat, john, hydra, aircrack-ng, metasploit.
-- [ ] Uninstall unauthorized P2P/file-sharing software.
 - [ ] Install and run rootkit detectors: `chkrootkit` and `rkhunter` — investigate any findings.
 - [ ] Search for prohibited media/files per README: `find / -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.avi' 2>/dev/null` (adjust extensions).
 - [ ] Search for suspicious archives that might hide contraband: `*.zip`, `*.tar.gz`, `*.rar`, `*.deb` in user home directories.
@@ -119,7 +115,6 @@
 - [ ] `net.ipv4.conf.all.rp_filter = 1`.
 - [ ] `kernel.randomize_va_space = 2` (ASLR enabled).
 - [ ] Install and configure `fail2ban` to block repeated failed SSH/login attempts.
-- [ ] Disable uncommon/unused kernel modules only if README calls for deep hardening.
 
 ## 11. Logging & Auditing
 
@@ -146,7 +141,6 @@
 - [ ] Disable or restrict USB storage auto-mount only if the README calls for it.
 - [ ] Verify system time is correct and NTP sync is enabled (`timedatectl` / chronyd or ntpd).
 - [ ] Confirm README-listed critical services are still running after EVERY major change.
-- [ ] Remove unnecessary compilers/dev tools from a production-role box only if README indicates it.
 - [ ] Final full README re-read to confirm every instruction and named vulnerability was addressed.
 
 ## 14. Finals-Round Specific Notes

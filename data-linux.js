@@ -2,20 +2,14 @@ const DATA_LINUX = [
 {
   title: "0. Before You Touch Anything",
   items: [
-    { t: "Read the README fully. Note authorized users, required critical services, prohibited software, special instructions.",
-      d: ["Open the README (Desktop file or competition portal).", "Read it fully once without changing anything.", "Write down every authorized user, required service, and prohibited item in a separate notes file."] },
     { t: "Identify distro and version: cat /etc/os-release (Ubuntu/Debian use apt; RHEL/CentOS/Fedora use yum/dnf).",
       d: ["Open a terminal.", "Run `cat /etc/os-release` and note the NAME and VERSION fields.", "This tells you which package manager and config file paths apply for the rest of this checklist."] },
-    { t: "Note critical services from README — securing ≠ disabling.",
-      d: ["List every service named as required by the README.", "Run `systemctl status <service>` for each to confirm it's currently active before you change anything else."] },
     { t: "Screenshot the current Scoring Report/score before making changes.",
       d: ["Open the CyberPatriot scoring report/reader on the desktop.", "Take a screenshot (most desktop environments: PrtScn, or use a screenshot tool from the panel) and save it somewhere you'll remember."] },
     { t: "Answer forensics questions first, before the system state changes: cat, less, grep, find as needed.",
       d: ["Locate the forensics question file per the README.", "Investigate using read-only commands like `cat`, `less`, `grep`, `find` before changing anything.", "Save your answers in the exact file/format the README specifies."] },
-    { t: "Do NOT disconnect the network or reboot into single-user/recovery mode unless the README says to.",
-      d: ["Leave networking (`systemctl status networking` / NetworkManager) enabled by default.", "Only take the machine offline or reboot into recovery/single-user mode if explicitly instructed."] },
-    { t: "Get a baseline: whoami, id, uname -a, w, last -a.",
-      d: ["Run `whoami` and `id` to confirm your own privilege level.", "Run `uname -a` for kernel/arch info.", "Run `w` to see who's currently logged in.", "Run `last -a` to review recent login history for anything unexpected."] }
+    { t: "If a packet capture (.pcap/.pcapng) is provided as part of forensics, use tcpdump/Wireshark to identify attacker source IPs.",
+      d: ["Open the file with `wireshark <file>.pcap` if a GUI is available, or inspect it headlessly with `tcpdump -nr <file>.pcap | less`.", "Look for a source IP hitting many ports/hosts in a short time (scan pattern) or repeated failed-auth-style traffic — that's usually the attacker.", "In Wireshark, Statistics → Conversations sorts by packet/byte count to spot it quickly.", "Cross-reference suspicious IPs against the ones referenced in the forensics questions."] }
   ]
 },
 {
@@ -101,8 +95,6 @@ const DATA_LINUX = [
       d: ["Run `dpkg -l` (Debian/Ubuntu) or `rpm -qa` (RHEL/CentOS) to list all installed packages.", "Scroll/search through and compare against the README's authorized list."] },
     { t: "Uninstall hacking/pentest tools if unauthorized: nmap, wireshark, netcat/ncat, john, hydra, aircrack-ng, metasploit.",
       d: ["Debian/Ubuntu: `sudo apt-get remove --purge nmap wireshark netcat-openbsd john hydra aircrack-ng`.", "RHEL/CentOS: `sudo yum remove nmap wireshark netcat john hydra aircrack-ng`.", "Adjust the package list to whatever's actually installed and unauthorized."] },
-    { t: "Uninstall unauthorized P2P/file-sharing software.",
-      d: ["Identify the package name from the `dpkg -l`/`rpm -qa` listing.", "Remove with `sudo apt-get remove --purge <package>` or `sudo yum remove <package>`."] },
     { t: "Install and run rootkit detectors: chkrootkit and rkhunter — investigate any findings.",
       d: ["Install: `sudo apt-get install chkrootkit rkhunter` (or yum equivalent).", "Run `sudo chkrootkit` and review output for 'INFECTED' results.", "Run `sudo rkhunter --update && sudo rkhunter --check` and review warnings carefully."] },
     { t: "Search for prohibited media/files per README: find / -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.avi' 2>/dev/null (adjust extensions).",
@@ -213,9 +205,7 @@ const DATA_LINUX = [
     { t: "kernel.randomize_va_space = 2 (ensure ASLR is enabled).",
       d: ["Add `kernel.randomize_va_space = 2` to the sysctl config, then run `sudo sysctl -p`.", "Verify with `cat /proc/sys/kernel/randomize_va_space` — should output 2."] },
     { t: "Install and configure fail2ban to block repeated failed SSH/login attempts.",
-      d: ["Install: `sudo apt-get install fail2ban`.", "Copy the default jail: `sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local`.", "Edit `/etc/fail2ban/jail.local`, ensure the `[sshd]` section has `enabled = true`.", "Restart: `sudo systemctl restart fail2ban`."] },
-    { t: "Disable uncommon/unused filesystem and network kernel modules only if the README calls for deep hardening (advanced/optional).",
-      d: ["Only if required: blacklist a module by adding `install <modulename> /bin/true` to a file in `/etc/modprobe.d/`, e.g. `/etc/modprobe.d/blacklist-custom.conf`."] }
+      d: ["Install: `sudo apt-get install fail2ban`.", "Copy the default jail: `sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local`.", "Edit `/etc/fail2ban/jail.local`, ensure the `[sshd]` section has `enabled = true`.", "Restart: `sudo systemctl restart fail2ban`."] }
   ]
 },
 {
@@ -265,8 +255,6 @@ const DATA_LINUX = [
       d: ["Run `timedatectl status` and confirm 'NTP synchronized: yes'.", "If not, run `sudo timedatectl set-ntp true`, or ensure `chronyd`/`ntpd` service is enabled and running."] },
     { t: "Confirm README-listed critical services are still running after EVERY major change (systemctl status <service>).",
       d: ["After each major change, run `systemctl status <service>` for every README-required service to confirm it's still active."] },
-    { t: "Remove unnecessary compilers/dev tools from a production-role box only if README indicates it (be careful — can break required software).",
-      d: ["Only if instructed: `sudo apt-get remove --purge gcc g++ make` (or equivalents).", "Verify no required software depends on these before removing."] },
     { t: "Final full README re-read to confirm every instruction and named vulnerability was addressed.",
       d: ["Reopen the README and go through it line by line, confirming each requirement was actually implemented before time runs out."] }
   ]

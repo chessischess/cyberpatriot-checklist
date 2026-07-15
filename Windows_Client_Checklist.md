@@ -7,12 +7,9 @@
 
 ## 0. Before You Touch Anything
 
-- [ ] Read the **README** fully. Highlight/write down every name mentioned (authorized users, admins, required services, prohibited software, special instructions). These override generic checklist items.
-- [ ] Note the **critical services** listed in the README (e.g., web server, FTP, SSH) — do NOT disable these, only secure them.
 - [ ] Check current score / scoring report (`CyberPatriot Scoring Report` app in the taskbar) — screenshot it.
 - [ ] Answer the **forensics questions** first while the system is still in its original state (some answers depend on original config, e.g. "how many admin accounts", "what's in this file", "who logged in when"). Save answers as `.txt`/`.docx` in the specified location, usually `Desktop` or `Security` folder — check the README for exact naming/location.
-- [ ] Identify OS version: `winver`, and whether it's a workstation (Win10/11) or server (2016/2019/2022) — server has extra roles/features to check.
-- [ ] Disable network access temporarily if instructed (usually NOT — most competitions require network up for scoring engine). Do not disconnect unless README says to.
+- [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, open it in Wireshark and use `Statistics → Conversations` (or Endpoints) to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
 
 ---
 
@@ -53,6 +50,7 @@
 - [ ] Verify **Windows Defender / antivirus definitions** are up to date.
 - [ ] Check `gpedit.msc` for any GPO blocking updates (`Computer Config → Admin Templates → Windows Components → Windows Update`) — set "Configure Automatic Updates" appropriately, remove any policy disabling updates.
 - [ ] If it's a server: check **Windows Server Update Services (WSUS)** config isn't pointing somewhere malicious.
+- [ ] Update every other README-required/allowed **application** (browser, Java, Apache/XAMPP, etc.) via its own updater — not just Windows itself.
 
 ---
 
@@ -61,17 +59,13 @@
 - [ ] Open `Control Panel → Programs and Features` — list all installed software, compare vs README's "authorized software" list.
 - [ ] Uninstall anything **not authorized**, especially:
   - Hacking tools (Wireshark, Nmap, Cain & Abel, Metasploit, netcat, John the Ripper, hydra, etc.)
-  - P2P/torrent software (uTorrent, BitTorrent, LimeWire)
   - Remote access tools not authorized (TeamViewer, AnyDesk, VNC, RAT-like tools)
-  - Old/vulnerable software versions
-  - Unauthorized games
 - [ ] Run **Windows Defender full scan** (or the AV specified in README). Quarantine/remove threats.
 - [ ] Enable **Windows Defender real-time protection**, cloud-delivered protection, tamper protection if not blocked by policy.
 - [ ] Check `Task Scheduler` (`taskschd.msc`) for suspicious/unauthorized scheduled tasks (backdoors, reverse shells, persistence).
 - [ ] Check **Startup apps** (`Task Manager → Startup` and `msconfig`) for unauthorized entries.
 - [ ] Check `services.msc` and running processes (`Task Manager → Details`) for unfamiliar/malicious processes; research anything unrecognized before killing.
-- [ ] Check for unauthorized **browser extensions** and reset browser settings/homepage if hijacked.
-- [ ] Search common malware drop locations: `C:\Users\<user>\AppData\Roaming`, `\Local\Temp`, `C:\ProgramData`, `C:\Windows\Temp` for suspicious `.exe`/`.bat`/`.ps1`/`.vbs` files.
+- [ ] Search common malware drop locations: `C:\Users\<user>\AppData\Roaming`, `\Local\Temp`, `C:\ProgramData`, `C:\Windows\Temp`, and **`C:\Users\Public\Downloads`** for suspicious `.exe`/`.bat`/`.ps1`/`.vbs` files.
 - [ ] Check `hosts` file (`C:\Windows\System32\drivers\etc\hosts`) for malicious redirects — should only have default entries.
 - [ ] Check registry `Run`/`RunOnce` keys (`HKLM` and `HKCU\...\CurrentVersion\Run`) for persistence entries.
 
@@ -93,7 +87,6 @@
 - [ ] **Remote Assistance**: disable (`System Properties → Remote`).
 - [ ] Disable **AutoPlay/AutoRun** for all drives (`gpedit.msc → Computer Config → Admin Templates → Windows Components → AutoPlay Policies` → Turn off Autoplay = Enabled, All drives).
 - [ ] Disable **SMBv1** entirely (legacy, exploitable — EternalBlue).
-- [ ] Review **Windows optional features** for anything unusual installed (e.g., unnecessary server roles on a workstation).
 
 ---
 
@@ -108,7 +101,6 @@
   - [ ] Network access: Do not allow anonymous enumeration of SAM accounts/shares → Enabled
   - [ ] Network security: LAN Manager authentication level → Send NTLMv2 response only, refuse LM & NTLM
   - [ ] Microsoft network server: Digitally sign communications (always) → Enabled
-  - [ ] Devices: Prevent users from installing printer drivers → Enabled (context dependent)
   - [ ] User Account Control (UAC) settings → Enabled, "Always notify" or default-and-above
 - [ ] **Local Policies → User Rights Assignment**
   - [ ] "Log on as a service" / "Log on locally" / "Access this computer from the network" — only authorized accounts/groups.
@@ -128,9 +120,7 @@
 - [ ] Remove rules for uninstalled/unauthorized software.
 - [ ] Check open ports: `netstat -ano` — investigate unexpected listening ports and the PID/process behind them.
 - [ ] Verify **network shares** — remove unauthorized shares (`net share`), check share + NTFS permissions on required shares match README (principle of least privilege).
-- [ ] Disable **IPv6** only if README explicitly says to (usually leave as-is).
 - [ ] Check DNS settings / hosts file again (see §3) for tampering.
-- [ ] If ICMP/ping responses are an issue in README, adjust firewall ICMP rules accordingly.
 
 ---
 
@@ -155,6 +145,7 @@
 - [ ] If SQL Server present: check for default/blank `sa` password, disable unnecessary features (xp_cmdshell), least-privilege accounts.
 - [ ] If it's a Domain Controller (Server finals images sometimes include AD): check AD users/groups/OUs against README, check Group Policy Objects for tampering, verify DNS zones.
 - [ ] If FTP required: ensure anonymous access disabled, TLS if possible, restrict to necessary users.
+- [ ] Apache (e.g. XAMPP, if installed/required): disable server signature — set `ServerSignature Off` and `ServerTokens Prod` in `httpd.conf`, then restart Apache.
 
 ---
 
@@ -221,6 +212,7 @@ Finals images are intentionally harder and often include intentionally "broken" 
 | Computer Management | `compmgmt.msc` |
 | Windows Features | `optionalfeatures.exe` |
 | System Config | `msconfig` |
+| Shared Folders (GUI) | `fsmgmt.msc` |
 | Network shares | `net share` |
 | List all users | `net user` |
 | Admin group members | `net localgroup administrators` |

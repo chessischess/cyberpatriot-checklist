@@ -2,20 +2,14 @@ const DATA_WINDOWS_SERVER = [
 {
   title: "0. Before You Touch Anything",
   items: [
-    { t: "Read the README fully. Note authorized users/admins, required roles (AD DS, DNS, DHCP, IIS, File Services...), critical services, prohibited software.",
-      d: ["Open the README on the Desktop or competition portal.", "Read it fully once without changing anything.", "Write down every named authorized user/admin, every required role/service, and every prohibited item in a separate notes file."] },
     { t: "Identify the server's role(s): standalone server, member server, or Domain Controller (check with Server Manager dashboard / presence of dsa.msc).",
       d: ["Open Server Manager (opens automatically on login, or search 'Server Manager').", "Look at the Dashboard → 'Roles and Server Groups' panel to see installed roles.", "Try Win+R, type `dsa.msc` — if it opens Active Directory Users and Computers, this box is a Domain Controller."] },
-    { t: "Note critical services from README — securing ≠ disabling. A DC that stops responding to DNS/AD kills the whole domain's score.",
-      d: ["List every service/role named as required.", "Press Win+R, type `services.msc`, confirm each is Running/Automatic before you change anything else."] },
     { t: "Screenshot the current Scoring Report score before making changes.",
       d: ["Open the Scoring Report application.", "Press Win+Shift+S to screenshot it, save with a timestamp."] },
     { t: "Answer forensics questions first, before the system state changes.",
       d: ["Locate the forensics question file per the README.", "Investigate read-only first (Event Viewer, AD Users and Computers, file browsing) before making fixes.", "Save your answers in the exact format/location specified."] },
-    { t: "Confirm OS build (winver / Server Manager dashboard) — 2016 vs 2019 vs 2022 changes some UI paths.",
-      d: ["Press Win+R, type `winver`, press Enter.", "Note the build number to know which Server version's menu layout you're working with."] },
-    { t: "Do NOT demote a Domain Controller, remove roles, or disconnect the network unless the README explicitly instructs it.",
-      d: ["Avoid Server Manager → Remove Roles and Features, and avoid running `dcpromo`/`Uninstall-ADDSDomainController` unless the README explicitly says to."] }
+    { t: "If a packet capture (.pcap/.pcapng) is provided as part of forensics, open it in Wireshark to identify attacker source IPs.",
+      d: ["Open the file in Wireshark (install it temporarily if needed — remove it again afterward if not README-authorized).", "Use Statistics → Conversations (or Statistics → Endpoints) to see which IPs talked to which, sorted by packet/byte count.", "Look for a source IP hitting many ports/hosts in a short time (scan pattern) or repeated failed-auth-style traffic — that's usually the attacker.", "Cross-reference suspicious IPs against the ones referenced in the forensics questions."] }
   ]
 },
 {
@@ -82,7 +76,9 @@ const DATA_WINDOWS_SERVER = [
     { t: "If WSUS is configured, verify the upstream server/URL is legitimate, not redirected to an attacker-controlled host.",
       d: ["In the same Windows Update GPO path, check 'Specify intranet Microsoft update service location'.", "Verify the URL points to your legitimate WSUS server; correct or disable the policy if it points elsewhere."] },
     { t: "Patch any other installed Microsoft server products (SQL Server, Exchange, IIS extensions) if present.",
-      d: ["Open the relevant product's update mechanism (e.g. SQL Server Installation Center, Microsoft Update Catalog) and install available patches per the README's allowances."] }
+      d: ["Open the relevant product's update mechanism (e.g. SQL Server Installation Center, Microsoft Update Catalog) and install available patches per the README's allowances."] },
+    { t: "Update every other README-required/allowed application (Apache/XAMPP, third-party tools, etc.), not just Windows itself.",
+      d: ["Open each required application and use its own 'Check for updates' feature, or check `appwiz.cpl` for outdated versions.", "For apps with no auto-updater, download the latest installer from the vendor and reinstall over the existing version."] }
   ]
 },
 {
@@ -169,8 +165,6 @@ const DATA_WINDOWS_SERVER = [
       d: ["Open Command Prompt, run `nslookup <servername>` and `nslookup <ip-address>` to verify forward and reverse resolution.", "Or in PowerShell, run `Resolve-DnsName <servername>`."] },
     { t: "Ensure NTP/time sync is correct — a DC should sync to a reliable external time source; member servers sync to the DC (w32tm /query /status).",
       d: ["Open an admin Command Prompt, run `w32tm /query /status` to check current sync source.", "On the PDC emulator DC, configure an external NTP source with `w32tm /config /manualpeerlist:\"time.windows.com\" /syncfromflags:manual /reliable:yes /update` then `net stop w32time && net start w32time`.", "On member servers, they should sync automatically from the domain hierarchy — verify, don't force an external source unless required."] },
-    { t: "Disable unused network protocols/services (e.g., unneeded IPv6 only if README explicitly requests it).",
-      d: ["Network adapter Properties → untick 'Internet Protocol Version 6 (TCP/IPv6)' only if the README explicitly instructs it, click OK."] }
   ]
 },
 {
@@ -251,7 +245,9 @@ const DATA_WINDOWS_SERVER = [
     { t: "File and Storage Services: audit shares (Computer Management → Shared Folders) — remove unauthorized shares, tighten share + NTFS permissions to least privilege.",
       d: ["Press Win+R, type `compmgmt.msc` → System Tools → Shared Folders → Shares.", "Right-click an unauthorized share → Stop Sharing.", "For required shares, right-click → Properties → Share Permissions and check NTFS Security tab, tighten to least privilege."] },
     { t: "FTP (if required): disable anonymous access, prefer FTPS, restrict to necessary users only.",
-      d: ["IIS Manager → select the FTP site → FTP Authentication → disable Anonymous, enable Basic/required auth.", "FTP SSL Settings → require SSL if a certificate is available.", "FTP Authorization Rules → restrict to specific authorized users."] }
+      d: ["IIS Manager → select the FTP site → FTP Authentication → disable Anonymous, enable Basic/required auth.", "FTP SSL Settings → require SSL if a certificate is available.", "FTP Authorization Rules → restrict to specific authorized users."] },
+    { t: "Apache (e.g. XAMPP, if installed and required): disable ServerSignature and set ServerTokens to hide version info.",
+      d: ["Open the Apache config file (`httpd.conf`, often under `C:\\xampp\\apache\\conf\\httpd.conf`) in a text editor.", "Find `ServerSignature On` and change it to `ServerSignature Off`.", "Find (or add) `ServerTokens` and set it to `ServerTokens Prod`.", "Save the file, then restart Apache (via the XAMPP Control Panel or `httpd -k restart`)."] }
   ]
 },
 {
@@ -363,6 +359,7 @@ const QUICK_REF_WINDOWS_SERVER = [
   ["Services", "services.msc"],
   ["Task Scheduler", "taskschd.msc"],
   ["Computer Management", "compmgmt.msc"],
+  ["Shared Folders (GUI)", "fsmgmt.msc"],
   ["AD replication summary", "repadmin /replsummary"],
   ["Show FSMO role holders", "netdom query fsmo"],
   ["Time sync status", "w32tm /query /status"],
