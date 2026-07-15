@@ -1,165 +1,129 @@
 # Linux CyberPatriot Checklist (Finals-Ready)
 
 > Ubuntu/Debian-focused (notes apply to RHEL/CentOS/Fedora too, package manager differs).
-> Work order: **Read README → identify distro/baseline score → forensics questions → users/password/sudo → updates → malware/rootkit scan → services/SSH/firewall → permissions/kernel hardening → cron/persistence → misc hardening.**
-> Re-read the README after every major change — it overrides this checklist.
+> Screenshot your starting score, and again every 15-20 min. Re-read the README after every major change — it overrides this checklist.
 
 ---
 
-## 0. Before You Touch Anything
-
-- [ ] Identify distro and version: `cat /etc/os-release` (Ubuntu/Debian use apt; RHEL/CentOS/Fedora use yum/dnf).
-- [ ] Screenshot the current Scoring Report/score before making changes.
-- [ ] Answer forensics questions first, before the system state changes: `cat`, `less`, `grep`, `find` as needed.
-- [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, inspect it with `tcpdump -nr <file>.pcap` or Wireshark's `Statistics → Conversations` to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
-
 ## 1. User Accounts & Groups
 
-- [ ] List all accounts: `cat /etc/passwd` — cross-reference every entry against the README's authorized user list.
-- [ ] Look for accounts with UID 0 other than root: `awk -F: '($3 == 0)' /etc/passwd`.
-- [ ] Look for unexpected accounts with UID ≥ 1000 not in the README.
-- [ ] Delete or lock unauthorized accounts: `passwd -l <user>` or `userdel`.
-- [ ] Verify group memberships, especially sudo/wheel/admin groups: `getent group sudo` (or `wheel` on RHEL).
-- [ ] Check for accounts with no password set: `awk -F: '($2 == "")' /etc/shadow`.
-- [ ] Ensure the root account has a strong password and is not used for routine logins.
-- [ ] Set strong passwords for every authorized user: `passwd <user>`.
-- [ ] Check for duplicate UIDs/usernames which can indicate a hidden shadow account.
-- [ ] Verify each user's shell in `/etc/passwd` — service accounts should use `/usr/sbin/nologin`, not `/bin/bash`.
+- [ ] `cat /etc/passwd` — cross-reference every account against README's authorized list. Look for UID 0 accounts other than root, and unexpected UID ≥1000 accounts not authorized.
+- [ ] Delete or lock unauthorized accounts: `passwd -l <user>` (safer) or `userdel` (only if certain it's unauthorized).
+- [ ] Verify group memberships — sudo/wheel/admin groups AND every other group named in the README (custom groups are scored just as often).
+- [ ] Check for accounts with no password set, and for duplicate UIDs (a sign of a hidden shadow account).
+- [ ] Set strong passwords for every authorized user, including root; confirm root isn't used for routine logins.
+- [ ] Verify each service/system account's shell in `/etc/passwd` is `/usr/sbin/nologin`, not `/bin/bash`.
+
+---
 
 ## 2. Password & Account Aging Policy
 
-- [ ] Edit `/etc/login.defs`: `PASS_MAX_DAYS 90`, `PASS_MIN_DAYS 10`, `PASS_WARN_AGE 7`.
-- [ ] Apply aging retroactively to existing users with `chage` (e.g., `chage -M 90 -m 10 -W 7 <user>`).
-- [ ] Enforce password complexity via PAM: edit `/etc/pam.d/common-password` using pam_pwquality/pam_cracklib — `minlen=12`, require upper/lower/digit/special classes.
-- [ ] Set failed-login lockout via pam_tally2/pam_faillock (deny after 3-5 attempts, unlock time 15-30 min).
-- [ ] Disable or lock direct root login where README allows (`passwd -l root`) and require sudo instead.
-- [ ] Verify `/etc/shadow` permissions are 640 or stricter, owned by `root:shadow`.
+- [ ] Edit `/etc/login.defs`: `PASS_MAX_DAYS 90`, `PASS_MIN_DAYS 10`, `PASS_WARN_AGE 7` — then apply retroactively to existing users with `chage`.
+- [ ] Enforce password complexity via PAM: edit `/etc/pam.d/common-password` (pam_pwquality) — `minlen=12`, require upper/lower/digit/special classes.
+- [ ] Set failed-login lockout (pam_tally2/pam_faillock, deny 3-5 attempts, unlock 15-30 min) and remove **`nullok`** from `/etc/pam.d/common-auth` (and common-password) — nullok lets blank-password accounts log in with no prompt.
+- [ ] Lock direct root login if README allows it (require sudo instead); verify `/etc/shadow` is 640 or stricter, owned by `root:shadow`.
+
+---
 
 ## 3. Sudo & Privilege Escalation Vectors
 
-- [ ] Audit `/etc/sudoers` with `visudo` (never edit directly) and everything under `/etc/sudoers.d/`.
-- [ ] Remove any `NOPASSWD` entries unless explicitly authorized by README.
-- [ ] Remove any `!authenticate` directives that bypass password prompts for sudo.
-- [ ] Verify only README-authorized users/groups are in sudoers, not `ALL` wildcards.
-- [ ] Search for world-writable files with SUID/SGID bits: `find / -perm -4000 -o -perm -2000 -type f 2>/dev/null`.
-- [ ] Check for unexpected SUID binaries not part of the base OS install; remove the bit (`chmod u-s`) if unauthorized.
-- [ ] Check `/etc/passwd` and `/etc/group` for world-writable permissions (should be 644/644, not writable by others).
+- [ ] Audit `/etc/sudoers` (via `visudo`) and `/etc/sudoers.d/` — remove `NOPASSWD` and `!authenticate` entries unless explicitly authorized; verify only README-authorized users/groups are granted sudo, not `ALL` wildcards.
+- [ ] Search for unexpected SUID/SGID binaries — remove the bit (or the file) if unauthorized.
+- [ ] Check `/etc/passwd` and `/etc/group` aren't world-writable (should be 644).
+
+---
 
 ## 4. Updates & Patch Management
 
-- [ ] Debian/Ubuntu: `sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade`.
-- [ ] RHEL/CentOS/Fedora: `sudo yum update` or `sudo dnf upgrade`.
-- [ ] Enable automatic security updates if the README doesn't forbid it (`unattended-upgrades` on Debian/Ubuntu).
-- [ ] Verify package manager sources/repos (`/etc/apt/sources.list`, `/etc/apt/sources.list.d/`) aren't pointing to unauthorized/malicious repositories.
-- [ ] Remove any suspicious third-party PPAs or repos not needed for the system's role.
+- [ ] Debian/Ubuntu: `apt-get update/upgrade/dist-upgrade`. RHEL/CentOS/Fedora: `yum/dnf update`.
+- [ ] Enable automatic security updates (`unattended-upgrades`) AND separately enable daily automatic update **checks** via Software & Updates — these are two distinct settings.
+- [ ] Verify package manager sources (`/etc/apt/sources.list`, `sources.list.d/`) aren't pointing to unauthorized repos; remove suspicious third-party PPAs.
+
+---
 
 ## 5. Malware, Rootkits & Unauthorized Software
 
-- [ ] Compare installed packages (`dpkg -l` or `rpm -qa`) against the README's authorized software list.
-- [ ] Uninstall hacking/pentest tools if unauthorized: nmap, wireshark, netcat/ncat, john, hydra, aircrack-ng, metasploit.
+- [ ] Compare installed packages (`dpkg -l` / `rpm -qa`) against README's authorized list — double-check before removing anything, since uninstalling a required package is a scored **penalty**.
+- [ ] Uninstall unauthorized hacking/pentest tools (nmap, wireshark, netcat, john, hydra, aircrack-ng, metasploit).
 - [ ] Install and run rootkit detectors: `chkrootkit` and `rkhunter` — investigate any findings.
-- [ ] Search for prohibited media/files per README: `find / -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.avi' 2>/dev/null` (adjust extensions).
-- [ ] Search for suspicious archives that might hide contraband: `*.zip`, `*.tar.gz`, `*.rar`, `*.deb` in user home directories.
-- [ ] Check `/etc/rc.local` and old-style init scripts for unauthorized startup commands.
-- [ ] Check for unowned files: `find / -nouser -o -nogroup 2>/dev/null`.
-- [ ] Check for world-writable files/directories outside expected temp locations: `find / -xdev -type d -perm -0002 2>/dev/null`.
+- [ ] Search for prohibited media files and suspicious archives that might hide contraband.
+- [ ] Check `/etc/rc.local` and `init.d` for unauthorized startup commands (classic backdoor location); check for unowned files and world-writable directories outside expected locations.
+
+---
 
 ## 6. Services & Processes
 
-- [ ] List active services: `systemctl list-units --type=service --state=running` (or `service --status-all` on older SysV systems).
-- [ ] Disable/remove services not required by README: Telnet, rsh/rlogin, TFTP, unauthenticated FTP, NFS, Samba if unneeded.
-- [ ] If the README requires a specific service (web/SSH/DB), harden it rather than removing it.
-- [ ] Check for unfamiliar processes and their binaries: `ps aux` and `lsof -p <pid>` / `ls -l /proc/<pid>/exe`.
-- [ ] Check listening ports and the owning process: `ss -tulnp` or `netstat -tulnp`.
-- [ ] Investigate and kill unauthorized reverse-shell-style processes.
-- [ ] Disable X11/GUI display manager services on a server role if not required by README.
+- [ ] List active services; disable/remove ones not required by README (Telnet, rsh/rlogin, TFTP, unauthenticated FTP, NFS, Samba, nginx/Apache) — harden a required service rather than removing it.
+- [ ] Check for unfamiliar processes and their binaries (`ps aux`, `/proc/<pid>/exe`, `lsof`).
+- [ ] Check listening ports (`ss -tulnp`) and kill unauthorized reverse-shell-style processes.
+- [ ] Disable the X11/GUI display manager on a server role if not required by README.
+
+---
 
 ## 7. SSH Hardening
 
-- [ ] Edit `/etc/ssh/sshd_config`: `PermitRootLogin no` (unless README explicitly requires root SSH).
-- [ ] `PasswordAuthentication` — set per README.
-- [ ] `PermitEmptyPasswords no`.
-- [ ] Protocol 2 only (verify no legacy `Protocol 1` config remains).
-- [ ] `X11Forwarding no` unless required.
-- [ ] Set a reasonable `LoginGraceTime` and `MaxAuthTries` (e.g., `MaxAuthTries 3`).
-- [ ] Restrict SSH access with `AllowUsers` / `AllowGroups` if README specifies a limited set.
-- [ ] Only change the default port (22) if the README explicitly asks.
-- [ ] Restart after changes: `sudo systemctl restart sshd`, but verify config first with `sshd -t`.
+- [ ] Edit `/etc/ssh/sshd_config`: `PermitRootLogin no` (unless required), `PermitEmptyPasswords no`, `PasswordAuthentication` per README, `X11Forwarding no` unless required.
+- [ ] Set a reasonable `MaxAuthTries` (e.g. 3) and `LoginGraceTime`; restrict access with `AllowUsers`/`AllowGroups` if README specifies a limited set.
+- [ ] Only change the default port (22) if the README explicitly asks — don't do it blindly.
+- [ ] Verify config syntax (`sshd -t`) before restarting the service.
+
+---
 
 ## 8. Firewall Configuration
 
-- [ ] Ubuntu/Debian: install/enable UFW — `sudo apt-get install ufw && sudo ufw enable`.
-- [ ] Set default policy: `sudo ufw default deny incoming`, `sudo ufw default allow outgoing`.
-- [ ] Explicitly allow only required services (e.g., `sudo ufw allow ssh`, `sudo ufw allow 80/tcp`).
-- [ ] RHEL/CentOS: use firewalld (`firewall-cmd`) or iptables/nftables — same allow-list principle.
-- [ ] Review existing rules for anything overly permissive.
-- [ ] Verify the firewall service is enabled to start on boot.
+- [ ] Install/enable UFW (Debian/Ubuntu) or firewalld (RHEL/CentOS) and enable it to start on boot.
+- [ ] Set default policy to deny incoming, allow outgoing (adjust outgoing if README requires stricter).
+- [ ] Explicitly allow only required services; review existing rules for anything overly permissive.
+
+---
 
 ## 9. File System Permissions & Integrity
 
 - [ ] Verify permissions on `/etc/passwd` (644), `/etc/shadow` (640/600), `/etc/group` (644), `/etc/gshadow` (640/600).
-- [ ] Search for and fix world-writable files/directories outside of expected temp locations.
-- [ ] Verify `/tmp` and `/var/tmp` have the sticky bit set (`chmod +t`).
-- [ ] Verify package integrity to detect tampered system binaries: `dpkg --verify` or `rpm -Va`.
-- [ ] Check for unexpected changes to `/etc/hosts`, `/etc/resolv.conf`, `/etc/nsswitch.conf`.
-- [ ] Check `/etc/hosts` for malicious static DNS-style redirects.
-- [ ] Verify home directory permissions (typically 750/700) aren't world-readable/writable.
+- [ ] Search for and fix world-writable files/directories outside expected temp locations; verify `/tmp` and `/var/tmp` have the sticky bit set.
+- [ ] Verify package integrity to detect tampered system binaries (`dpkg --verify` / `rpm -Va`).
+- [ ] Check `/etc/hosts`, `/etc/resolv.conf`, `/etc/nsswitch.conf` for tampering — remove malicious static DNS redirects.
+- [ ] Verify home directory permissions (750/700) aren't world-readable/writable; verify the **GRUB config** isn't world-readable (`chmod 600 /boot/grub/grub.cfg`).
+
+---
 
 ## 10. Kernel & Network Hardening
 
-- [ ] Edit `/etc/sysctl.conf` (or a file in `/etc/sysctl.d/`) and apply with `sysctl -p`.
-- [ ] `net.ipv4.ip_forward = 0` (unless this box is a router/gateway per README).
-- [ ] `net.ipv4.conf.all.accept_source_route = 0`.
-- [ ] `net.ipv4.conf.all.accept_redirects = 0` and `net.ipv4.conf.all.send_redirects = 0`.
-- [ ] `net.ipv4.icmp_echo_ignore_broadcasts = 1`.
-- [ ] `net.ipv4.conf.all.rp_filter = 1`.
-- [ ] `kernel.randomize_va_space = 2` (ASLR enabled).
+- [ ] Edit `/etc/sysctl.conf` (or a file in `/etc/sysctl.d/`) and apply with `sysctl -p`: `net.ipv4.ip_forward=0`, `net.ipv4.conf.all.accept_source_route=0`, `net.ipv4.conf.all.accept_redirects=0`, `net.ipv4.conf.all.send_redirects=0`, `net.ipv4.icmp_echo_ignore_broadcasts=1`, `net.ipv4.conf.all.rp_filter=1`, `net.ipv4.tcp_syncookies=1`, `kernel.randomize_va_space=2`.
 - [ ] Install and configure `fail2ban` to block repeated failed SSH/login attempts.
+
+---
 
 ## 11. Logging & Auditing
 
-- [ ] Install and enable auditd: `sudo apt-get install auditd && sudo systemctl enable --now auditd`.
-- [ ] Add basic audit rules for changes to `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`, sensitive config directories.
-- [ ] Verify rsyslog/syslog is running and logs are being written to `/var/log/`.
-- [ ] Verify logrotate is configured so logs aren't disabled or truncated maliciously.
-- [ ] Review `/var/log/auth.log` (or `/var/log/secure` on RHEL) for suspicious login attempts.
-- [ ] Check that logging hasn't been redirected to `/dev/null` or disabled in `rsyslog.conf`.
+- [ ] Install and enable `auditd`; add basic audit rules for changes to `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`.
+- [ ] Verify rsyslog is running and logs are current; verify logrotate isn't tampered and logging isn't redirected to `/dev/null`.
+- [ ] Review `/var/log/auth.log` (or `/var/log/secure` on RHEL) for suspicious login attempts tied to forensics questions.
+
+---
 
 ## 12. Cron, Systemd Timers & Persistence
 
-- [ ] Review system-wide cron: `/etc/crontab` and `/etc/cron.d/`, `/etc/cron.{hourly,daily,weekly,monthly}/`.
-- [ ] Review each user's personal crontab: `crontab -l -u <user>` for every account.
-- [ ] Review systemd timers for unauthorized persistence: `systemctl list-timers --all`.
-- [ ] Check `/etc/rc.local` and any lingering SysV init scripts.
-- [ ] Check shell profile/init files (`~/.bashrc`, `~/.profile`, `/etc/profile.d/`) for malicious aliases or `LD_PRELOAD` hijacking.
-- [ ] Check for immutable-flagged files: `lsattr` on suspicious files; remove unauthorized `chattr +i` if found.
-- [ ] Verify PATH variables haven't been hijacked to prioritize a malicious directory before `/usr/bin`.
+- [ ] Review system-wide and per-user cron (`/etc/crontab`, `/etc/cron.d/`, `cron.{hourly,daily,weekly,monthly}`, `crontab -l -u <user>` for every account).
+- [ ] Review systemd timers for unauthorized persistence.
+- [ ] Check `/etc/rc.local`/`init.d` scripts and shell profile files (`~/.bashrc`, `/etc/profile.d`) for malicious startup commands, aliases, or `LD_PRELOAD` hijacking.
+- [ ] Check for immutable-flagged files (`lsattr`/`chattr`) hiding a persistence mechanism, and PATH hijacking prioritizing a malicious directory before `/usr/bin`.
+
+---
 
 ## 13. Miscellaneous Hardening
 
 - [ ] Enable a screen lock/session timeout for GUI environments if applicable.
-- [ ] Disable or restrict USB storage auto-mount only if the README calls for it.
-- [ ] Verify system time is correct and NTP sync is enabled (`timedatectl` / chronyd or ntpd).
+- [ ] Verify system time is correct and NTP sync is enabled.
 - [ ] Confirm README-listed critical services are still running after EVERY major change.
-- [ ] Final full README re-read to confirm every instruction and named vulnerability was addressed.
 
-## 14. Finals-Round Specific Notes
+---
 
-- [ ] Expect a broken or hijacked PATH, aliased core utilities, or a tampered shell profile — check `echo $PATH`.
-- [ ] Expect LD_PRELOAD-based process hijacking — check `/etc/ld.so.preload` and per-user environment.
-- [ ] Expect hidden persistence via systemd timers/services with innocuous names — cross-check every unit.
-- [ ] Expect immutable files (`chattr +i`) protecting a malicious config — check with `lsattr` before assuming a fix failed.
-- [ ] Watch for tampered package manager sources or intercepted DNS causing updates to silently fail.
-- [ ] Skim the current year's CIS Benchmark for your specific distro/version for edge-case items.
-- [ ] Track score after each category — if a change doesn't move the score or it drops, investigate/revert immediately.
-- [ ] Time budget for a **4-hour round**:
-  - 0:00–0:15 README + forensics questions + baseline
-  - 0:15–1:00 Users/password/sudo
-  - 1:00–1:45 Updates + malware/rootkit scan
-  - 1:45–2:30 Services + SSH + firewall
-  - 2:30–3:15 Permissions + kernel hardening + cron/persistence
-  - 3:15–3:45 Second README pass + verify critical services
-  - 3:45–4:00 Final check, screenshots
+## 14. Finals-Round Notes
+
+- [ ] Expect a hijacked PATH/`LD_PRELOAD`, aliased core utilities, or immutable files (`chattr +i`) protecting a malicious config.
+- [ ] Expect hidden persistence via systemd timers/services with innocuous names — cross-check every unit against a known-good list.
+- [ ] Track score after each category. Time budget for a **4-hour round**: 0:00-0:15 forensics+baseline, 0:15-1:00 users/password/sudo, 1:00-1:45 updates+malware, 1:45-2:30 services+SSH+firewall, 2:30-3:15 permissions+kernel+cron, 3:15-3:45 second README pass, 3:45-4:00 final check.
 
 ---
 

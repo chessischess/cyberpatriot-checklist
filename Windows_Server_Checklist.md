@@ -1,203 +1,151 @@
 # Windows Server CyberPatriot Checklist (Finals-Ready)
 
 > Covers Windows Server 2016/2019/2022, including Active Directory Domain Services, DNS, and DHCP roles.
-> Work order: **Read README → identify role(s)/baseline score → forensics questions → accounts/password policy → updates → roles/features → GPO/policy → firewall/network → AD/DNS/DHCP → files/permissions → misc hardening.**
-> Re-read the README after every major change — a broken DC/DNS/DHCP tanks the whole team's score, not just yours.
+> Screenshot your starting score, and again every 15-20 min. A broken DC/DNS/DHCP tanks the whole team's score, not just yours.
 
 ---
 
-## 0. Before You Touch Anything
-
-- [ ] Identify the server's role(s): standalone server, member server, or Domain Controller (check with Server Manager dashboard / presence of `dsa.msc`).
-- [ ] Screenshot the current Scoring Report score before making changes.
-- [ ] Answer forensics questions first, before the system state changes.
-- [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, open it in Wireshark and use `Statistics → Conversations` (or Endpoints) to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
-- [ ] If a forensics question asks for a file's hash, use PowerShell (`Get-FileHash -Algorithm SHA256 .\<filename>`) rather than installing a third-party tool.
-
 ## 1. Local & Domain User Accounts
 
-- [ ] Local Users and Groups (`lusrmgr.msc`) on member servers; Active Directory Users and Computers (`dsa.msc`) if this is a DC.
-- [ ] Cross-reference every local AND domain account against the README's authorized user/admin list.
-- [ ] Disable or remove unauthorized accounts — disable first if unsure whether it's a service account in use.
-- [ ] Verify local Administrators group AND Domain Admins / Enterprise Admins group membership — remove unauthorized members.
-- [ ] Check membership of **every group named in the README**, not just Administrators/Domain Admins (Remote Desktop Users, Backup Operators, Event Log Readers, custom groups) — these are scored just as often.
-- [ ] Ensure the Guest account (local and domain) is disabled.
-- [ ] Do not disable the built-in Administrator account by default on a DC — some AD recovery tasks require it; only change per README.
-- [ ] Check for duplicate/stale AD accounts, accounts in the wrong OU, or accounts with unexpected UPNs.
-- [ ] Check for hidden local accounts via `SpecialAccounts\UserList` registry key and `net user`.
+- [ ] `lusrmgr.msc` (member servers) / `dsa.msc` (DC) — cross-reference every account against README's authorized list; disable/remove unauthorized ones (disable first if unsure it's a service account).
+- [ ] Verify local Administrators, Domain Admins/Enterprise Admins, AND every other group named in the README — remove unauthorized members, add missing authorized ones.
+- [ ] Ensure the **Guest account** (local and domain) is disabled; leave the built-in Administrator account as-is on a DC unless README says otherwise.
+- [ ] Check for duplicate/stale AD accounts or wrong-OU placement (DC only); hidden local accounts (`SpecialAccounts\UserList`) and **Autologon** (`Winlogon\AutoAdminLogon`) in the registry.
 - [ ] Set strong, compliant passwords for all authorized local and domain accounts.
-- [ ] Check Autologon registry key (`Winlogon\AutoAdminLogon`) — disable if present.
 - [ ] Verify service accounts (SQL, IIS app pool, backup agents) have least-privilege, not blanket Domain Admin.
+
+---
 
 ## 2. Password & Account Lockout Policy
 
-- [ ] On a Domain Controller, edit the **Default Domain Policy** (Group Policy Management) — local `secpol.msc` password policy is ignored for domain accounts.
-- [ ] Password history: enforce 24 remembered.
-- [ ] Maximum password age: 60–90 days (not 0/never).
-- [ ] Minimum password age: 1+ day.
-- [ ] Minimum password length: 8+ (14 recommended for finals).
-- [ ] Password must meet complexity requirements: Enabled.
-- [ ] Store passwords using reversible encryption: Disabled.
-- [ ] Account lockout duration / threshold / reset counter: 15–30 min, **5-50 attempts (never below 5 — scored as a penalty)**, 15–30 min.
-- [ ] On member servers without a DC role, also set local Account Policy (`secpol.msc`) the same way.
-- [ ] Enforce fine-grained password policies (PSOs) only if README specifically calls for them.
+- [ ] On a Domain Controller, edit the **Default Domain Policy** (`gpmc.msc`) — local `secpol.msc` is ignored for domain accounts. On member servers without a DC role, set local Account Policy the same way.
+- [ ] **Password Policy**: history 24, max age 60-90 days, min age 1+ day, min length 8+ (14 for finals), complexity Enabled, reversible encryption Disabled.
+- [ ] **Account Lockout Policy**: duration 15-30 min, threshold **5-50** (never below 5 — CyberPatriot penalizes that), reset counter 15-30 min.
+
+---
 
 ## 3. Windows Updates & Patching
 
-- [ ] Settings → Update & Security (or `sconfig` on Server Core) → check for and install all updates, reboot, repeat.
-- [ ] Verify Windows Defender / configured AV definitions are current.
-- [ ] Check for a GPO blocking Windows Update (Computer Config → Admin Templates → Windows Components → Windows Update) and fix it.
-- [ ] If WSUS is configured, verify the upstream server/URL is legitimate, not redirected to an attacker-controlled host.
-- [ ] Patch any other installed Microsoft server products (SQL Server, Exchange, IIS extensions) if present.
-- [ ] Update every other README-required/allowed **application** (Apache/XAMPP, third-party tools, etc.) via its own updater — not just Windows itself. Reinstall to the SAME default location — "not installed at default location" is a scored penalty.
+- [ ] Settings → Windows Update (or `sconfig` on Server Core) → check for and install all updates, reboot, repeat.
+- [ ] Verify Defender/AV definitions are current; check for a GPO blocking Windows Update and fix "Configure Automatic Updates".
+- [ ] If **WSUS** is configured, verify the upstream server/URL is legitimate, not attacker-controlled.
+- [ ] Update every other README-required/allowed **application** (Apache/XAMPP, SQL Server, Exchange, third-party tools), not just Windows — reinstall to the SAME default location (penalized otherwise).
+
+---
 
 ## 4. Malware & Unauthorized Software
 
-- [ ] Compare installed software (Programs and Features / `Get-Package`) against the README's authorized list.
-- [ ] Remove hacking/pentest tools (Wireshark, Nmap, Metasploit, netcat, Mimikatz, John, hydra).
-- [ ] Remove unauthorized remote access tools (TeamViewer, AnyDesk, unauthorized VNC).
+- [ ] Compare installed software (`Programs and Features` / `Get-Package`) against README's authorized list; remove hacking/pentest tools (Wireshark, Nmap, Mimikatz, John, hydra) and unauthorized remote access tools (TeamViewer, AnyDesk, VNC).
 - [ ] Run a full AV scan; enable real-time protection, cloud-delivered protection, tamper protection.
-- [ ] Check Task Scheduler for unauthorized scheduled tasks, especially ones running as SYSTEM or Domain Admin.
-- [ ] Check Startup items and registry `Run`/`RunOnce` keys (HKLM and HKCU) for persistence.
-- [ ] Search Temp, ProgramData, and user profile folders for suspicious exe/bat/ps1/vbs files.
-- [ ] Check the hosts file (`System32\drivers\etc\hosts`) for malicious redirects.
-- [ ] Review installed Windows Services for unfamiliar binaries running from unusual paths (AppData, Temp) rather than System32/Program Files.
+- [ ] Check for unauthorized persistence: **Task Scheduler** (especially tasks running as SYSTEM/Domain Admin), Startup items, and registry **Run/RunOnce** keys (HKLM + HKCU).
+- [ ] Search Temp/ProgramData/user profile folders for suspicious exe/bat/ps1/vbs files; check the **hosts file** for malicious redirects.
+- [ ] Review installed services for unfamiliar binaries running from AppData/Temp rather than System32/Program Files.
+
+---
 
 ## 5. Server Roles & Features
 
-- [ ] Open Server Manager → Manage → Add/Remove Roles and Features — confirm only README-required roles are installed (AD DS, DNS, DHCP, IIS, File and Storage Services, etc.).
-- [ ] Remove roles/features that are installed but not authorized — reduces attack surface and often scores points directly.
+- [ ] `Server Manager` → confirm only README-required roles are installed (AD DS, DNS, DHCP, IIS, File and Storage Services, etc.) — remove unauthorized roles/features (including IIS if not required).
 - [ ] `services.msc` — disable unneeded, risky services not required by README (Telnet Server, FTP unless required, SMTP, Remote Registry, SNMP unless required).
-- [ ] Disable SMBv1 (Windows Features) — legacy, exploitable (EternalBlue).
-- [ ] Disable Windows Features not in use: TFTP Client, Telnet Client, PowerShell v2 (legacy, weaker logging) if not required.
-- [ ] If the IIS role is present but not required by README, remove it entirely rather than just stopping the service.
-- [ ] Verify no unexpected server roles are installed on what should be a single-purpose box.
+- [ ] Disable **SMBv1**, TFTP Client, Telnet Client, and PowerShell v2 if not required.
+
+---
 
 ## 6. Local Security Policy, GPO & Domain Policy
 
-- [ ] Guest account status → Disabled (Security Options), both local and domain.
-- [ ] Limit local account use of blank passwords to console logon only → Enabled.
-- [ ] Do not display last user name at logon → Enabled.
-- [ ] Interactive logon: require CTRL+ALT+DEL → Enabled.
-- [ ] Network access: do not allow anonymous enumeration of SAM accounts/shares → Enabled.
-- [ ] LAN Manager authentication level → Send NTLMv2 response only, refuse LM & NTLM.
-- [ ] Microsoft network server: digitally sign communications (always) → Enabled.
-- [ ] UAC settings → Enabled, Always Notify or default-and-above.
-- [ ] Review Group Policy Objects linked at domain/OU level (`gpmc.msc`) for tampering — a malicious GPO can silently re-break the whole domain.
-- [ ] Check Resultant Set of Policy (`rsop.msc` / `gpresult /h report.html`) to catch conflicts between local and domain-applied policy.
-- [ ] Enable audit policy: logon events, account management, policy change, object access, directory service access (success + failure). Newer images may instead expect `Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation` — check both locations.
-- [ ] Restrict User Rights Assignment (Log on as a service / locally / from network) to only authorized accounts/groups.
+- [ ] **Security Options** (local and domain): Guest account status Disabled, blank passwords console-logon-only Enabled, do not display last username Enabled, require CTRL+ALT+DEL, anonymous SAM enumeration blocked, LAN Manager auth = NTLMv2 only, digitally sign server communications Enabled.
+- [ ] **UAC settings** → Enabled, Always Notify.
+- [ ] Review **GPOs** linked at domain/OU level (`gpmc.msc`) for tampering; check **Resultant Set of Policy** (`rsop.msc` / `gpresult /h report.html`) for conflicts between local and domain-applied policy.
+- [ ] Enable audit policy: logon events, account management, policy change, object access, directory service access (Success + Failure). Newer images may instead expect `Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation`.
+- [ ] Restrict **User Rights Assignment** (Log on as a service / locally / from network) to only authorized accounts/groups.
+
+---
 
 ## 7. Network Configuration
 
-- [ ] Confirm the server uses a static IP address, not DHCP-assigned, for production stability.
-- [ ] Configure at least two DNS servers where possible for redundancy.
-- [ ] Verify valid forward (A) DNS records exist with correct naming; verify PTR records exist for reverse lookups.
-- [ ] Test name resolution with `nslookup` / `Resolve-DnsName` for the server and other domain hosts.
-- [ ] Ensure NTP/time sync is correct — a DC should sync to a reliable external time source; member servers sync to the DC (`w32tm /query /status`).
+- [ ] Confirm the server uses a **static IP** with at least two configured DNS servers.
+- [ ] Verify valid forward (A) and reverse (PTR) DNS records exist; test with `nslookup` / `Resolve-DnsName`.
+- [ ] Ensure NTP/time sync is correct — a DC should sync to a reliable external source; member servers sync to the DC.
+
+---
 
 ## 8. Firewall
 
-- [ ] Windows Defender Firewall enabled for all 3 profiles (Domain, Private, Public).
-- [ ] Default inbound = Block except for roles this server must serve (DNS 53, DHCP 67/68, web 80/443, AD ports) — outbound = Allow unless README says otherwise.
-- [ ] Review inbound/outbound rules for unauthorized or overly permissive entries (Any/Any, high-numbered backdoor ports like 4444/1337/31337).
-- [ ] Remove firewall rules tied to uninstalled or unauthorized software/roles.
+- [ ] Windows Defender Firewall enabled for all 3 profiles; inbound = Block except for roles this server must serve (DNS 53, DHCP 67/68, web 80/443, AD ports), outbound = Allow.
+- [ ] Review inbound/outbound rules for unauthorized/overly permissive entries (Any/Any, high backdoor ports like 4444/1337/31337); remove rules tied to uninstalled software/roles.
 - [ ] Check `netstat -ano` for unexpected listening ports and identify the owning process/service.
-- [ ] If a hardware firewall/VPN boundary is implied by the README, restrict RDP/management ports accordingly on the Windows Firewall too.
+
+---
 
 ## 9. Active Directory Domain Services (if this box is a DC)
 
-- [ ] Open Active Directory Users and Computers (`dsa.msc`) — audit every user, group, and OU against the README's org chart.
-- [ ] Look for accounts placed in the wrong OU, disabled accounts that should be enabled (or vice versa), and stale/duplicate accounts.
-- [ ] Check Domain Admins / Enterprise Admins / Schema Admins group membership carefully — these are prime targets for tampering.
-- [ ] Verify FSMO role holders are on the expected DC(s): `netdom query fsmo`.
-- [ ] Check AD replication health if multiple DCs exist: `repadmin /replsummary` and `repadmin /showrepl`.
-- [ ] Review Group Policy Objects in Group Policy Management (`gpmc.msc`) — check for GPOs that weaken security domain-wide (password policy, Defender, firewall).
-- [ ] Verify SYSVOL and NETLOGON shares are intact and replicating (they hold logon scripts and GPO templates).
-- [ ] Check AD Sites and Services for unexpected site/subnet changes if applicable.
+- [ ] `dsa.msc` — audit every user, group, and OU against the README's org chart; fix misplaced accounts, wrong enable/disable state, and stale/duplicate accounts.
+- [ ] Check **Domain Admins / Enterprise Admins / Schema Admins** group membership carefully — these are prime tampering targets.
+- [ ] Verify **FSMO role holders** are on the expected DC(s) and AD replication is healthy (`netdom query fsmo`, `repadmin /replsummary`).
+- [ ] Verify **SYSVOL** and **NETLOGON** shares are intact and replicating; check AD Sites and Services for unexpected site/subnet changes.
+
+---
 
 ## 10. DNS Server Role (if present)
 
-- [ ] Open DNS Manager (`dnsmgmt.msc`) — verify forward and reverse lookup zones exist and are correctly configured.
-- [ ] Check for unauthorized or suspicious DNS records (A/CNAME records pointing somewhere unexpected — classic redirect/persistence trick).
-- [ ] Verify zone transfer settings are restricted to authorized secondary servers only, not "to any server".
-- [ ] Confirm DNS forwarders point to a legitimate upstream resolver, not an attacker-controlled IP.
-- [ ] Enable DNSSEC or scavenging only if the README calls for it — don't change zone behavior blindly.
+- [ ] `dnsmgmt.msc` — verify forward/reverse zones are configured correctly; remove unauthorized or suspicious A/CNAME records pointing to an unexpected IP.
+- [ ] Verify zone transfers are restricted to authorized secondary servers (not "to any server") and forwarders point to a legitimate upstream resolver; only enable DNSSEC/scavenging if README calls for it.
+
+---
 
 ## 11. DHCP Server Role (if present)
 
-- [ ] Open the DHCP console — verify scope ranges, exclusions, and reservations match the README's network plan.
-- [ ] Check DHCP scope options (DNS servers, default gateway, domain name) point to legitimate infrastructure.
-- [ ] Verify the DHCP server is authorized in Active Directory (right-click server → Authorize) if it should be running.
-- [ ] Remove or disable rogue/unauthorized DHCP scopes.
+- [ ] `dhcpmgmt.msc` — verify scope ranges/exclusions/reservations and scope options (DNS, gateway, domain name) match the README's network plan.
+- [ ] Verify the DHCP server is authorized in AD; remove or disable rogue/unauthorized scopes.
+
+---
 
 ## 12. IIS / File Services / Other Installed Roles
 
-- [ ] IIS: update it, remove default sample sites/pages, disable directory browsing, use least-privilege app pool identities.
-- [ ] IIS: remove unused modules/handlers, enforce HTTPS if a certificate is expected, check bindings for unauthorized sites.
-- [ ] SQL Server (if installed): check for a default/blank `sa` password, disable `xp_cmdshell`, use least-privilege service accounts.
-- [ ] File and Storage Services: audit shares (Computer Management → Shared Folders) — remove unauthorized shares, tighten share + NTFS permissions to least privilege.
-- [ ] FTP (if required): disable anonymous access, prefer FTPS, restrict to necessary users only.
-- [ ] Apache (e.g. XAMPP, if installed/required): disable server signature — set `ServerSignature Off` and `ServerTokens Prod` in `httpd.conf`, then restart Apache.
+- [ ] **IIS**: update it, remove default sample sites, disable directory browsing, least-privilege app pool identities, remove unused modules, enforce HTTPS if a cert is expected.
+- [ ] **SQL Server** (if installed): strong `sa` password, disable `xp_cmdshell`, least-privilege service account.
+- [ ] **File and Storage Services**: audit shares (Computer Management → Shared Folders) — remove unauthorized shares, tighten share + NTFS permissions.
+- [ ] **FTP** (if required): disable anonymous access, prefer FTPS. **Apache** (e.g. XAMPP, if required): disable ServerSignature and set `ServerTokens Prod`.
 
-## 13. Remote Access (RDP / WinRM / PowerShell Remoting)
+---
 
-- [ ] Disable Remote Desktop unless explicitly required by README; if required, enable Network Level Authentication and restrict to authorized users/group.
-- [ ] Disable Remote Assistance.
-- [ ] Restrict RDP/management access to expected admin accounts only — check "Remote Desktop Users" group membership.
-- [ ] If PowerShell Remoting (WinRM) is enabled but not required, disable it (`Disable-PSRemoting`) or restrict `TrustedHosts`.
-- [ ] Avoid Telnet and unauthenticated FTP entirely — replace with SSH/SFTP-equivalent or Windows-native secure tools only if README allows.
+## 13. Remote Access (RDP / WinRM)
+
+- [ ] Disable **Remote Desktop** unless explicitly required (if required, enable NLA and restrict via the Remote Desktop Users group); disable Remote Assistance.
+- [ ] If **PowerShell Remoting (WinRM)** is enabled but not required, disable it or restrict `TrustedHosts`.
+
+---
 
 ## 14. File System, Permissions & Data
 
 - [ ] Search for and remove prohibited files per README categories (media, unauthorized archives, unrecognized scripts).
-- [ ] Check permissions on sensitive directories (System32, SYSVOL, user profiles, application data) — no unauthorized "Everyone: Full Control".
-- [ ] Verify shared folder permissions follow least privilege and match the README spec.
-- [ ] Check Recycle Bin and hidden/system files for hidden contraband.
-- [ ] Only enable BitLocker/EFS if explicitly instructed — encrypting blindly can break the scoring engine's access to the disk.
+- [ ] Check permissions on sensitive directories (System32, SYSVOL, profiles) — no unauthorized "Everyone: Full Control"; verify shared folder permissions match least-privilege/README spec.
+- [ ] Check Recycle Bin/hidden files for contraband; only enable BitLocker/EFS if explicitly instructed.
+
+---
 
 ## 15. Miscellaneous Hardening
 
 - [ ] Enable screen lock/screensaver with password, reasonable timeout.
-- [ ] Disable USB storage auto-execution (don't disable USB entirely unless told).
 - [ ] Verify system time/timezone correctness (critical for AD Kerberos auth and log accuracy).
-- [ ] Check Event Viewer (especially Security and Directory Service logs) for signs of compromise tied to forensics questions.
-- [ ] Confirm every README-listed critical service/role is still running after EVERY major change — a broken DC/DNS/DHCP tanks the whole team's score.
-- [ ] Do a final full README re-read to confirm every instruction and named vulnerability was addressed.
-
-## 16. Advanced Credential & Attack-Surface Hardening
-
-- [ ] Disable **WDigest** credential caching on every server, especially DCs (`HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest\UseLogonCredential` = `0`, or push via GPO domain-wide).
-- [ ] Enable **LSA protection (RunAsPPL)** so LSASS runs as a protected process against Mimikatz-style dumping (`HKLM\SYSTEM\CurrentControlSet\Control\Lsa\RunAsPPL` = `1`) — verify required security/monitoring software still works before walking away.
-- [ ] Add sensitive admin accounts to the built-in **Protected Users** group (`dsa.msc`) to block NTLM and weak-crypto Kerberos for them — verify they can still authenticate afterward (Kerberos-only, no NTLM/DES/RC4).
-- [ ] Disable the **Print Spooler** service on Domain Controllers unless explicitly required — PrintNightmare (CVE-2021-34527) turns it into a domain-wide privilege-escalation vector.
-- [ ] Restrict **NTLM authentication** domain-wide via `Network security: Restrict NTLM` policies — audit first (`Audit NTLM authentication in this domain` = Enable all), review Event Viewer, then enforce `Deny all` per README's tolerance for breakage.
-- [ ] Disable **LLMNR/NetBIOS** broadcast name resolution domain-wide via GPO to prevent Responder-style credential-capture attacks.
-- [ ] Turn on **PowerShell Script Block Logging** and **Module Logging** via GPO on all servers for auditability.
-- [ ] Enable **Attack Surface Reduction (ASR) rules** where the server role supports it, particularly blocking LSASS credential theft — test in AuditMode first on production-role servers.
-- [ ] Verify/deploy **LAPS** (Local Administrator Password Solution) if the README calls for unique, randomized local admin passwords across member servers.
-- [ ] Restrict anonymous/null session access further via `RestrictAnonymous` and `RestrictAnonymousSAM` registry values domain-wide.
-- [ ] Enable **Windows Firewall logging** (dropped and successful connections) for forensic visibility during the round (`wf.msc → Properties → Logging → Customize`).
-- [ ] Verify **Kerberos delegation** settings on service/computer accounts aren't set to unconstrained delegation for non-DC boxes — a classic AD privilege-escalation trap; only Constrained or None unless README requires otherwise.
+- [ ] Check **Event Viewer** (Security, and Directory Service on a DC) for signs of compromise tied to forensics questions.
+- [ ] Confirm every README-listed **critical service/role** is still running after EVERY major change.
 
 ---
 
-## 17. Finals-Round Specific Notes
+## 16. Advanced Hardening (if time remains)
 
-- [ ] Expect broken PowerShell, modified PATH/PSModulePath, or disabled execution policy traps — check and restore sane values.
-- [ ] Expect GPO traps pushed from the Default Domain Policy or an OU-linked GPO that silently re-disable Defender, re-enable Guest, or lower the password policy on refresh — check `rsop.msc` / `gpresult`, not just local secpol.
-- [ ] Expect intentionally broken DNS (wrong forwarders, missing records) or replication issues between DCs as part of the injected vulnerabilities — verify with `repadmin` and `nslookup`.
-- [ ] Watch for FSMO roles seized/moved incorrectly, or a rogue DHCP/DNS server on the network segment.
-- [ ] Skim the current year's Microsoft/CIS Benchmark for Windows Server for edge-case hardening items beyond the basics above.
-- [ ] Track score after each category — if a change doesn't move the score or it drops, investigate/revert immediately rather than pressing on.
-- [ ] Time budget for a **4-hour round**:
-  - 0:00–0:15 README + forensics questions + baseline
-  - 0:15–1:00 Accounts + password policy
-  - 1:00–1:45 Updates + malware + roles
-  - 1:45–2:30 GPO/policy + firewall + network
-  - 2:30–3:15 AD/DNS/DHCP/roles + file system
-  - 3:15–3:45 Second README pass + verify all critical services
-  - 3:45–4:00 Final check, screenshots
+- [ ] Disable **WDigest** (`UseLogonCredential=0`) and enable **LSA protection** (`RunAsPPL=1`) on every server, especially DCs — verify required security/monitoring software still works afterward.
+- [ ] Add sensitive admin accounts to the built-in **Protected Users** group to block NTLM/weak-crypto Kerberos — verify they can still authenticate afterward.
+- [ ] Disable the **Print Spooler** service on Domain Controllers unless explicitly required — PrintNightmare (CVE-2021-34527) is a domain-wide privilege-escalation vector.
+
+---
+
+## 17. Finals-Round Notes
+
+- [ ] Expect **GPO traps** from the Default Domain Policy or an OU-linked GPO that silently re-disable Defender/re-enable Guest/lower password policy on refresh — check `rsop.msc`/`gpresult`, not just local secpol.
+- [ ] Watch for intentionally broken DNS, replication issues between DCs, FSMO roles seized/moved incorrectly, or a rogue DHCP/DNS server on the segment.
+- [ ] Track score after each category. Time budget for a **4-hour round**: 0:00-0:15 forensics+baseline, 0:15-1:00 accounts+password policy, 1:00-1:45 updates+malware+roles, 1:45-2:30 GPO+firewall+network, 2:30-3:15 AD/DNS/DHCP+file system, 3:15-3:45 second README pass, 3:45-4:00 final check.
 
 ---
 

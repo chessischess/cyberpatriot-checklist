@@ -1,205 +1,107 @@
 # Windows Client CyberPatriot Checklist (Finals-Ready)
 
-> Work order matters: **Read README first → snapshot/baseline → forensics questions → users/passwords → updates → services/features → policies → firewall → malware/unwanted software → file/permissions/shares → misc hardening.**
-> Take a screenshot of your starting score, and screenshot again every 15-20 min. Re-read the README after every major change — it overrides this checklist.
-
----
-
-## 0. Before You Touch Anything
-
-- [ ] Check current score / scoring report (`CyberPatriot Scoring Report` app in the taskbar) — screenshot it.
-- [ ] Answer the **forensics questions** first while the system is still in its original state (some answers depend on original config, e.g. "how many admin accounts", "what's in this file", "who logged in when"). Save answers as `.txt`/`.docx` in the specified location, usually `Desktop` or `Security` folder — check the README for exact naming/location.
-- [ ] If a **packet capture** (`.pcap`/`.pcapng`) is given for forensics, open it in Wireshark and use `Statistics → Conversations` (or Endpoints) to find the attacker source IP — look for a source hitting many ports/hosts fast, or repeated failed-auth traffic.
-- [ ] If a forensics question asks for a file's hash, use PowerShell (`Get-FileHash -Algorithm SHA256 .\<filename>`) rather than installing a third-party tool.
+> Screenshot your starting score, and again every 15-20 min. Re-read the README after every major change — it overrides this checklist.
 
 ---
 
 ## 1. User Accounts & Password Policy
 
-### 1.1 Accounts
-- [ ] Open `Computer Management → Local Users and Groups` (`lusrmgr.msc`) — or `netplwiz` / `net user`.
-- [ ] Cross-reference every account against the README's authorized user list.
-- [ ] **Delete or disable** any unauthorized/unknown local accounts (don't delete if unsure — disable first, ask/verify).
-- [ ] Verify **Administrators group** membership (`net localgroup administrators`) — remove anyone not explicitly authorized as admin in the README.
-- [ ] Check membership of **every group named in the README**, not just Administrators (Remote Desktop Users, Backup Operators, Event Log Readers, custom groups) via `lusrmgr.msc → Groups` — these are scored just as often.
+- [ ] Open `lusrmgr.msc` (or `net user`) — cross-reference every account against README's authorized list; delete/disable unauthorized ones (disable first if unsure).
+- [ ] Verify membership of **Administrators** AND every other group named in the README (Remote Desktop Users, custom groups, etc.) — remove unauthorized members, add missing authorized ones. Custom groups are scored just as often.
 - [ ] Ensure **Guest account is disabled**.
-- [ ] Rename or disable default **Administrator account** if README specifies (usually leave enabled but secure it — check instructions).
-- [ ] Check for **hidden accounts** created via registry (`SpecialAccounts\UserList`) or accounts that don't show in `lusrmgr.msc` (`net user` from cmd shows all).
-- [ ] Set a **strong, compliant password for every authorized account** (yourself included) — meets complexity below. Do NOT reuse the same password everywhere if README forbids it.
-- [ ] Any account impersonating an authorized user with wrong privilege level → fix group membership, don't just rename.
-- [ ] Check **Autologon** registry key (`HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\AutoAdminLogon`) — disable if present.
-
-### 1.2 Password & Account Policy (`secpol.msc → Account Policies`)
-- [ ] **Password Policy**
-  - [ ] Enforce password history: **24** passwords remembered
-  - [ ] Maximum password age: **≤ 60-90 days** (not 0/never)
-  - [ ] Minimum password age: **1+ day**
-  - [ ] Minimum password length: **≥ 8** (14 is safer for finals)
-  - [ ] Password must meet complexity requirements: **Enabled**
-  - [ ] Store passwords using reversible encryption: **Disabled**
-- [ ] **Account Lockout Policy**
-  - [ ] Account lockout duration: **15-30 min**
-  - [ ] Account lockout threshold: **5-50 invalid attempts** — never below 5, CyberPatriot scores that as a penalty
-  - [ ] Reset lockout counter after: **15-30 min**
-- [ ] Force a password change on next logon for accounts with weak/known passwords if appropriate.
+- [ ] Check for hidden accounts (`SpecialAccounts\UserList` registry key) and **Autologon** (`Winlogon\AutoAdminLogon`) — remove/disable if present.
+- [ ] Set a strong, compliant password for every authorized account.
+- [ ] **Password Policy** (`secpol.msc → Account Policies → Password Policy`): history 24, max age 60-90 days, min age 1+ day, min length 8+ (14 for finals), complexity Enabled, reversible encryption Disabled.
+- [ ] **Account Lockout Policy**: duration 15-30 min, threshold **5-50** (never below 5 — CyberPatriot penalizes that), reset counter 15-30 min.
 
 ---
 
 ## 2. Windows Updates & Patching
 
-- [ ] `Settings → Update & Security → Windows Update` → **Check for updates**, install all (may need multiple passes/reboots).
-- [ ] Set update settings to automatic if disabled by a "vulnerability."
-- [ ] Verify **Windows Defender / antivirus definitions** are up to date.
-- [ ] Check `gpedit.msc` for any GPO blocking updates (`Computer Config → Admin Templates → Windows Components → Windows Update`) — set "Configure Automatic Updates" appropriately, remove any policy disabling updates.
-- [ ] If it's a server: check **Windows Server Update Services (WSUS)** config isn't pointing somewhere malicious.
-- [ ] Update every other README-required/allowed **application** (browser, Java, Apache/XAMPP, etc.) via its own updater — not just Windows itself. Reinstall to the SAME default location — "not installed at default location" is a scored penalty.
+- [ ] `Settings → Update & Security → Windows Update` → check and install all updates (multiple passes/reboots).
+- [ ] Set update settings to automatic if disabled; verify Defender definitions are current.
+- [ ] Check `gpedit.msc` for a GPO blocking updates — fix "Configure Automatic Updates".
+- [ ] Update every other README-required/allowed **application** (browser, Java, Apache/XAMPP, etc.) via its own updater — not just Windows. Reinstall to the SAME default location — "not installed at default location" is a scored penalty.
 
 ---
 
 ## 3. Malware, Unwanted & Unauthorized Software
 
-- [ ] Open `Control Panel → Programs and Features` — list all installed software, compare vs README's "authorized software" list.
-- [ ] Uninstall anything **not authorized**, especially:
-  - Hacking tools (Wireshark, Nmap, Cain & Abel, Metasploit, netcat, John the Ripper, hydra, etc.)
-  - Remote access tools not authorized (TeamViewer, AnyDesk, VNC, RAT-like tools)
-- [ ] Run **Windows Defender full scan** (or the AV specified in README). Quarantine/remove threats.
-- [ ] Enable **Windows Defender real-time protection**, cloud-delivered protection, tamper protection if not blocked by policy.
-- [ ] Set **Windows Defender SmartScreen** (Explorer and Edge) to Warn or Block, not disabled (`gpedit.msc → Admin Templates → Windows Components → Windows Defender SmartScreen`).
-- [ ] Check `Task Scheduler` (`taskschd.msc`) for suspicious/unauthorized scheduled tasks (backdoors, reverse shells, persistence).
-- [ ] Check **Startup apps** (`Task Manager → Startup` and `msconfig`) for unauthorized entries.
-- [ ] Check `services.msc` and running processes (`Task Manager → Details`) for unfamiliar/malicious processes; research anything unrecognized before killing.
-- [ ] Search common malware drop locations: `C:\Users\<user>\AppData\Roaming`, `\Local\Temp`, `C:\ProgramData`, `C:\Windows\Temp`, and **`C:\Users\Public\Downloads`** for suspicious `.exe`/`.bat`/`.ps1`/`.vbs` files.
-- [ ] Check `hosts` file (`C:\Windows\System32\drivers\etc\hosts`) for malicious redirects — should only have default entries.
-- [ ] Check registry `Run`/`RunOnce` keys (`HKLM` and `HKCU\...\CurrentVersion\Run`) for persistence entries.
+- [ ] `Programs and Features` (`appwiz.cpl`) — compare vs README's authorized list; uninstall hacking tools (Wireshark, Nmap, Metasploit, netcat, John, hydra) and unauthorized remote access tools (TeamViewer, AnyDesk, VNC).
+- [ ] Run a full **Windows Defender scan**; enable real-time protection, cloud-delivered protection, tamper protection.
+- [ ] Set **Windows Defender SmartScreen** (Explorer and Edge) to Warn or Block, not disabled.
+- [ ] Check for unauthorized persistence: **Task Scheduler** (`taskschd.msc`), **Startup apps** (Task Manager/msconfig), and registry **Run/RunOnce** keys (HKLM + HKCU).
+- [ ] Check `services.msc` and running processes (Task Manager → Details) for unfamiliar/malicious items — research before killing.
+- [ ] Search `AppData\Roaming`, `Local\Temp`, `ProgramData`, `Windows\Temp`, and `C:\Users\Public\Downloads` for suspicious exe/bat/ps1/vbs files; check the **hosts file** for malicious redirects.
 
 ---
 
 ## 4. Services & Windows Features
 
-- [ ] `services.msc` — disable/stop unnecessary and risky services **not required by README critical services**:
-  - Telnet Server/Client
-  - FTP (unless required)
-  - SMTP (unless required)
-  - Remote Registry
-  - SNMP (unless required)
-  - Simple TCP/IP Services
-  - Fax service
-- [ ] `Control Panel → Programs → Turn Windows features on or off`:
-  - [ ] Disable/uninstall: Telnet Client, TFTP Client, SMB 1.0/CIFS File Sharing Support (unless legacy requirement stated)
-  - [ ] Disable unnecessary IIS components if not the required web server
-- [ ] **Remote Desktop (RDP)**: disable unless explicitly required by README. If required, ensure Network Level Authentication is on and only authorized users have access.
-- [ ] **Remote Assistance**: disable (`System Properties → Remote`).
-- [ ] Disable **AutoPlay/AutoRun** for all drives (`gpedit.msc → Computer Config → Admin Templates → Windows Components → AutoPlay Policies` → Turn off Autoplay = Enabled, All drives).
-- [ ] Disable **SMBv1** entirely (legacy, exploitable — EternalBlue).
+- [ ] `services.msc` — disable/stop unneeded, risky services not required by README (Telnet, FTP, SMTP, Remote Registry, SNMP, Simple TCP/IP, Fax).
+- [ ] Turn Windows features on/off (`optionalfeatures.exe`): disable Telnet Client, TFTP Client, SMB 1.0/CIFS, unneeded IIS components.
+- [ ] **Remote Desktop**: disable unless explicitly required (if required, enable NLA and restrict users); disable **Remote Assistance**.
+- [ ] Disable **AutoPlay/AutoRun** for all drives via `gpedit.msc`.
 
 ---
 
-## 5. Local Security Policy (`secpol.msc`) & Group Policy
+## 5. Local Security Policy & Group Policy
 
-- [ ] **Local Policies → Security Options**
-  - [ ] Accounts: Guest account status → Disabled
-  - [ ] Accounts: Rename administrator account (if instructed)
-  - [ ] Accounts: Limit local account use of blank passwords to console logon only → Enabled
-  - [ ] Interactive logon: Do not display last user name → Enabled
-  - [ ] Interactive logon: Do not require CTRL+ALT+DEL → Disabled (i.e., DO require it)
-  - [ ] Network access: Do not allow anonymous enumeration of SAM accounts/shares → Enabled
-  - [ ] Network security: LAN Manager authentication level → Send NTLMv2 response only, refuse LM & NTLM
-  - [ ] Microsoft network server: Digitally sign communications (always) → Enabled
-  - [ ] User Account Control (UAC) settings → Enabled, "Always notify" or default-and-above
-- [ ] **Local Policies → User Rights Assignment**
-  - [ ] "Log on as a service" / "Log on locally" / "Access this computer from the network" — only authorized accounts/groups.
-  - [ ] "Deny log on locally" for Guest.
-  - [ ] Remove unauthorized users from "Debug programs," "Take ownership," "Act as part of the OS," "Back up files and directories" (privilege escalation vectors).
-- [ ] Ensure **UAC is enabled** (`Control Panel → User Accounts → Change User Account Control settings` — set to at least default level, not "Never notify").
-- [ ] **Audit Policy**: enable auditing for logon events, account management, policy change, object access (success + failure) so logs actually capture activity. Newer images may instead expect `Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation` — check both locations.
-- [ ] Check for GPOs pushed locally that weaken security (`gpedit.msc`) — reset any suspicious custom policy to default/secure.
+- [ ] **Security Options** (`secpol.msc → Local Policies → Security Options`): Guest account status Disabled, blank passwords console-logon-only Enabled, do not display last username Enabled, require CTRL+ALT+DEL, anonymous SAM enumeration blocked, LAN Manager auth = NTLMv2 only, digitally sign server communications Enabled.
+- [ ] **UAC settings** → Enabled, Always Notify (not "Never notify").
+- [ ] **User Rights Assignment**: restrict Log on as a service / locally / network access to authorized accounts; deny log on locally for Guest; remove unauthorized users from Debug programs, Take ownership, Act as part of the OS, Back up files.
+- [ ] **Audit Policy**: enable Success + Failure auditing for logon events, account management, policy change, object access. Newer images may instead expect `Advanced Audit Policy Configuration → System Audit Policies → Account Logon → Audit Credential Validation` — check both locations.
+- [ ] Check `gpedit.msc` for suspicious custom policies weakening security (e.g. Defender/Updates disabled via policy) — reset to secure defaults.
 
 ---
 
 ## 6. Firewall & Network
 
-- [ ] `Windows Defender Firewall` → ensure **enabled for all 3 profiles** (Domain, Private, Public).
-- [ ] Set default inbound = Block, outbound = Allow (unless README states otherwise).
-- [ ] Review **inbound/outbound rules** for anything unauthorized or overly permissive (e.g., rules opening high-risk ports like 4444, 1337, 31337, or allowing "Any" program/port).
-- [ ] Remove rules for uninstalled/unauthorized software.
-- [ ] Check open ports: `netstat -ano` — investigate unexpected listening ports and the PID/process behind them.
-- [ ] Verify **network shares** — remove unauthorized shares (`net share`, or the `fsmgmt.msc` GUI → Shares → Stop Sharing), check share + NTFS permissions on required shares match README (principle of least privilege).
-- [ ] Check DNS settings / hosts file again (see §3) for tampering.
+- [ ] Windows Defender Firewall enabled for **all 3 profiles** (Domain, Private, Public); default inbound = Block, outbound = Allow.
+- [ ] Review inbound/outbound rules for unauthorized/overly permissive entries (high ports like 4444/1337/31337, Any/Any rules); remove rules for uninstalled software.
+- [ ] Check `netstat -ano` for unexpected listening ports and investigate the owning process.
+- [ ] Review **network shares** (`net share`, or `fsmgmt.msc` GUI) — remove unauthorized ones, tighten share + NTFS permissions.
 
 ---
 
 ## 7. File System, Permissions & Data
 
-- [ ] Search for and remove **prohibited files** per README categories, typically:
-  - Media: `.mp3, .mp4, .avi, .mkv, .mov, .wav`
-  - Images (non-work related): `.jpg, .png, .gif` in user folders (be careful — don't delete legit forensic/work files)
-  - Hacking tools/scripts: `.exe, .bat, .ps1, .vbs, .py` unrecognized
-  - Archives that might hide contraband: `.zip, .rar, .7z`
-  - Use File Explorer search (`*.mp3`, etc.) across `C:\Users` and common folders.
-- [ ] Check **file/folder permissions** on sensitive directories (`C:\Windows\System32`, user profile folders) — no unauthorized "Everyone: Full Control" or overly broad permissions.
-- [ ] Verify **shared folders** permissions match least-privilege / README spec.
-- [ ] Check **Recycle Bin** and hidden/system files (`dir /a` or "Show hidden files") for hidden contraband.
-- [ ] BitLocker / EFS: enable only if instructed — don't encrypt drives blindly (can break scoring engine access).
+- [ ] Search for and remove **prohibited files** per README categories: media (mp3/mp4/avi/mkv/mov/wav), non-work images (jpg/png/gif), unrecognized scripts (exe/bat/ps1/vbs/py), archives (zip/rar/7z) that might hide contraband.
+- [ ] Check permissions on sensitive directories (System32, user profiles, shares) — no unauthorized "Everyone: Full Control"; verify shared folder permissions match least-privilege/README spec.
+- [ ] Check **Recycle Bin** and hidden/system files for hidden contraband.
 
 ---
 
-## 8. Application-Specific / Server Roles (if present)
+## 8. Application-Specific Roles (if present)
 
-- [ ] If IIS is installed and required: update it, remove default sample sites/pages, disable directory browsing, apply least-privilege app pool identities.
-- [ ] If SQL Server present: check for default/blank `sa` password, disable unnecessary features (xp_cmdshell), least-privilege accounts.
-- [ ] If it's a Domain Controller (Server finals images sometimes include AD): check AD users/groups/OUs against README, check Group Policy Objects for tampering, verify DNS zones.
-- [ ] If FTP required: ensure anonymous access disabled, TLS if possible, restrict to necessary users.
-- [ ] Apache (e.g. XAMPP, if installed/required): disable server signature — set `ServerSignature Off` and `ServerTokens Prod` in `httpd.conf`, then restart Apache.
+- [ ] **IIS**: update it, remove default sample sites, disable directory browsing, least-privilege app pool identities; disable anonymous FTP access, prefer TLS.
+- [ ] **SQL Server**: set a strong `sa` password, disable `xp_cmdshell`, least-privilege service accounts.
+- [ ] **Apache** (e.g. XAMPP, if installed/required): disable server signature — set `ServerSignature Off` and `ServerTokens Prod` in `httpd.conf`, then restart Apache.
 
 ---
 
 ## 9. Miscellaneous Hardening
 
-- [ ] Screen lock / screensaver: enable with password, reasonable timeout (e.g., 10-15 min).
-- [ ] Disable **USB storage auto-execution** but don't disable USB entirely unless told.
-- [ ] Check **Internet Options / browser security settings** — reset to safe defaults, clear malicious proxy settings (`Internet Options → Connections → LAN Settings` — no unauthorized proxy).
-- [ ] Verify **system time/timezone** is correct (affects logs/auditing).
-- [ ] Check **Event Viewer** briefly for obvious signs of compromise mentioned in README-related forensics questions.
-- [ ] Confirm **critical services from README are still running** after all changes (re-check after EVERY major change — many teams lose points by breaking a required service).
-- [ ] Re-read README one final time — confirm every explicit instruction was followed and every named vulnerability/topic addressed.
+- [ ] Enable screen lock/screensaver with password, 10-15 min timeout.
+- [ ] Verify system time/timezone is correct (affects logs/auditing).
+- [ ] Check **Event Viewer** briefly for signs of compromise tied to forensics questions.
+- [ ] Confirm README **critical services** are still running after EVERY major change.
 
 ---
 
-## 10. Advanced Credential & Attack-Surface Hardening
+## 10. Advanced Hardening (if time remains)
 
-- [ ] Disable **WDigest** credential caching so plaintext passwords aren't held in LSASS memory (`HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest\UseLogonCredential` = `0`).
-- [ ] Enable **LSA protection (RunAsPPL)** so LSASS runs as a protected process, blocking common credential-dumping tools like Mimikatz (`HKLM\SYSTEM\CurrentControlSet\Control\Lsa\RunAsPPL` = `1`, reboot required).
-- [ ] Disable the **PowerShell v2 engine** entirely — it lacks AMSI/script block logging and is a classic downgrade-attack target (`optionalfeatures.exe` or `Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root`).
-- [ ] Turn on **PowerShell Script Block Logging** and **Module Logging** (`gpedit.msc → Computer Config → Admin Templates → Windows Components → Windows PowerShell`) so malicious commands leave an audit trail.
-- [ ] Enable **Attack Surface Reduction (ASR) rules** in Windows Defender, especially blocking credential theft from LSASS (`Set-MpPreference -AttackSurfaceReductionRules_Ids 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2 -AttackSurfaceReductionRules_Actions Enabled`).
-- [ ] Enable **Controlled Folder Access** (ransomware protection) for user data folders (`Windows Security → Virus & threat protection → Manage ransomware protection`).
-- [ ] Verify **Exploit Protection** system mitigations (DEP, ASLR, CFG) are still at secure defaults, not weakened.
-- [ ] Disable **LLMNR** and **NetBIOS** name resolution to block Responder-style credential-capture attacks (`gpedit.msc → Computer Config → Admin Templates → Network → DNS Client → Turn off Multicast Name Resolution` = Enabled; adapter → WINS tab → Disable NetBIOS over TCP/IP).
-- [ ] Restrict anonymous/null session access further via `RestrictAnonymous` and `RestrictAnonymousSAM` registry values under `HKLM\SYSTEM\CurrentControlSet\Control\Lsa` (belt-and-suspenders alongside §5).
-- [ ] Clear stray saved credentials in **Credential Manager** that could let an attacker auto-authenticate as someone else.
-- [ ] If supported, confirm **Secure Boot** and **TPM** are enabled (`msinfo32`, `tpm.msc`) — relevant to Windows 11 baselines.
-- [ ] Disable the **Print Spooler** service if this machine doesn't need to print — mitigates PrintNightmare-class vulnerabilities (CVE-2021-34527).
+- [ ] Disable **WDigest** (`UseLogonCredential=0`) and enable **LSA protection** (`RunAsPPL=1`) so plaintext creds aren't cached and LSASS is a protected process.
+- [ ] Disable the **PowerShell v2** engine and enable Script Block/Module Logging.
+- [ ] Disable the **Print Spooler** service if this machine doesn't need to print — mitigates PrintNightmare (CVE-2021-34527).
 
 ---
 
-## 11. Finals-Round Specific Notes
+## 11. Finals-Round Notes
 
-Finals images are intentionally harder and often include intentionally "broken" components — don't just run a script and walk away.
-
-- [ ] Expect **broken PowerShell** or **modified environment variables** (`PATH`, `PSModulePath`) — check `[Environment]::GetEnvironmentVariables()` and restore sane values if `powershell`/`cmd` won't run properly.
-- [ ] Expect **renamed/relocated critical binaries** or altered file associations — verify `.exe`/`.msc`/`.ps1` file associations aren't hijacked.
-- [ ] Expect **GPO-based traps** (e.g., a GPO silently disabling Defender, re-enabling Guest, or re-lowering password policy on refresh) — check both Local Security Policy AND `rsop.msc` (Resultant Set of Policy) to catch conflicts from a domain/local GPO overriding your changes.
-- [ ] Expect **obscure/rare CIS benchmark items** beyond the basics above — skim the current year's CIS Benchmark for Windows 10/11 or Server as extra reference material before competition day.
-- [ ] Build (in practice, ahead of time) a **personal automation checklist/script** (PowerShell) for the repetitive, safe items (disable Guest, set password policy, enable firewall, disable AutoPlay) — but always run scripts on **practice images first**, and hand-verify README-specific items manually; don't blindly run someone else's script on competition day.
-- [ ] Track points after each category — if a change doesn't move the score or drops it, investigate/revert immediately rather than moving on.
-- [ ] Time management for a 4-hour round: budget roughly —
-  - 0:00–0:15 README + forensics questions + baseline
-  - 0:15–1:00 Users/passwords/policy
-  - 1:00–1:45 Updates + malware/software audit
-  - 1:45–2:30 Services/features + firewall
-  - 2:30–3:15 File system/permissions + misc hardening
-  - 3:15–3:45 Second full README re-read + fix stragglers + verify critical services
-  - 3:45–4:00 Final score check, screenshots, buffer for surprises
+- [ ] Expect **GPO traps** that silently re-disable Defender / re-enable Guest / lower the password policy on refresh — check `rsop.msc` for conflicts, not just `secpol.msc`.
+- [ ] Track score after each category — if a change doesn't move the score or drops it, investigate/revert immediately.
+- [ ] Time budget for a **4-hour round**: 0:00-0:15 forensics/baseline, 0:15-1:00 users/policy, 1:00-1:45 updates+malware, 1:45-2:30 services+firewall, 2:30-3:15 files+misc, 3:15-3:45 second README pass, 3:45-4:00 final check.
 
 ---
 
