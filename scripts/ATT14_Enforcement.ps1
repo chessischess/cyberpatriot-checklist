@@ -1,327 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scripts | CyberPatriot</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="wrap">
-  <nav class="topnav">
-    <a href="index.html">Home</a>
-    <a href="windows-client.html">Windows Client</a>
-    <a href="windows-server.html">Windows Server</a>
-    <a href="linux.html">Linux</a>
-    <a href="scripts.html" class="active">Scripts</a>
-  </nav>
-
-  <h1>Scripts</h1>
-  <div class="sub">Automation scripts for repetitive CyberPatriot tasks. Always run on a practice image first and read through the script before running it on competition day — never blind-run someone else's script.</div>
-
-  <div class="script-card">
-    <div class="script-card-header">
-      <h2>User Enforcement Script (ATT13)</h2>
-      <div class="script-card-actions">
-        <a class="btn btn-primary" href="scripts/CyberPatriot-User-Enforcement.ps1" download>Download .ps1</a>
-        <button class="btn" onclick="cpCopyScript('script-att13', this)">Copy</button>
-      </div>
-    </div>
-    <p class="script-desc">
-      Parses a README-style user list (<code>Authorized Administrators:</code> / <code>Authorized Users:</code> sections) from a text file, then reconciles the local Windows accounts against it: adds missing authorized admins to the Administrators group, removes users who shouldn't have admin rights, disables unknown/unauthorized accounts, sets a strong password for any admin with a weak or missing password, enforces password expiration for every authorized account, and applies the system password policy (history 21, max age 30 days, min age 5 days, min length 8, complexity enabled, reversible encryption disabled) via <code>net accounts</code> and the LSA registry keys. Prompts for a dry-run mode first so you can preview every change before it's applied.
-    </p>
-    <div class="script-block-wrap">
-      <pre class="script-block"><code id="script-att13"># ============================================
-# CyberPatriot User Enforcement Script (ATT13)
-# Users, Admins, Password Expiration, Policy
-# CLEAN VERSION - WORKING PASSWORD POLICY
-# Compatible with Windows PowerShell 5.1+
 # ============================================
-
-Write-Host "Enter the path to your README user list file (example: C:\users.txt)"
-$readmePath = Read-Host
-
-while (-not (Test-Path $readmePath)) {
-    Write-Host "File not found. Please enter a valid path."
-    $readmePath = Read-Host
-}
-
-$readme = Get-Content $readmePath
-
-Write-Host "Do you want to run in dry-run mode? (y/n)"
-$dryRunInput = Read-Host
-$dryRun = $dryRunInput.ToLower() -eq "y"
-
-if ($dryRun) {
-    Write-Host "`n=== DRY RUN ENABLED ==="
-} else {
-    Write-Host "`n=== FULL EXECUTION MODE ==="
-}
-
-Write-Host "`n=== Parsing README User List ==="
-
-# -------------------------
-# PARSE ADMINS
-# -------------------------
-$adminSection = $readme | Select-String -Pattern "Authorized Administrators:" -Context 0,200
-$adminContext = $adminSection[0].Context.PostContext
-
-$adminLines = @()
-foreach ($line in $adminContext) {
-    if ($line -match "Authorized Users:") { break }
-    $adminLines += $line
-}
-
-$admins = @{}
-$currentUser = ""
-
-foreach ($line in $adminLines) {
-    $trim = $line.Trim()
-    if ($trim -eq "") { continue }
-
-    # Detect password line even with leading spaces or tabs
-    if ($line -match "^\s*password\s*:\s*(.+)$") {
-        $password = $matches[1].Trim()
-        $admins[$currentUser] = $password
-        continue
-    }
-
-    # Detect admin username (strip notes like "(you)")
-    $cleanUser = $trim.Split(" ")[0]
-    $currentUser = $cleanUser
-
-    if (-not $admins.ContainsKey($currentUser)) {
-        $admins[$currentUser] = $null
-    }
-}
-
-# -------------------------
-# PARSE USERS
-# -------------------------
-$userSection = $readme | Select-String -Pattern "Authorized Users:" -Context 0,200
-$userContext = $userSection[0].Context.PostContext
-
-$users = @()
-foreach ($line in $userContext) {
-    $trim = $line.Trim()
-    if ($trim -eq "") { continue }
-    if ($trim -match "^Authorized ") { break }
-    $users += $trim
-}
-
-Write-Host "Admins found:" ($admins.Keys -join ", ")
-Write-Host "Users found:" ($users -join ", ")
-
-# -------------------------
-# GET SYSTEM STATE
-# -------------------------
-$systemUsers = Get-LocalUser
-$systemAdmins = Get-LocalGroupMember -Group "Administrators" | Select-Object -ExpandProperty Name
-
-# Normalize admin names (remove DOMAIN\ prefix)
-$systemAdminsClean = $systemAdmins | ForEach-Object { $_.Split("\")[-1] }
-
-# Built-in accounts to ignore
-$ignoreUsers = @(
-    "Administrator",
-    "Guest",
-    "DefaultAccount",
-    "WDAGUtilityAccount"
-)
-
-Write-Host "`n=== Checking for Discrepancies ==="
-
-# -------------------------
-# FIX ADMIN PRIVILEGES
-# -------------------------
-foreach ($admin in $admins.Keys) {
-    if ($systemAdminsClean -notcontains $admin) {
-        if ($dryRun) {
-            Write-Host "[DRY-RUN] Would add $admin to Administrators group"
-        } else {
-            Write-Host "[FIX] Adding $admin to Administrators group"
-            Add-LocalGroupMember -Group "Administrators" -Member $admin -ErrorAction SilentlyContinue
-        }
-    }
-}
-
-# -------------------------
-# FIX USERS WITH ADMIN PRIVILEGES
-# -------------------------
-foreach ($sa in $systemAdminsClean) {
-    if (($admins.Keys -notcontains $sa) -and ($users -contains $sa)) {
-        if ($dryRun) {
-            Write-Host "[DRY-RUN] Would remove $sa from Administrators group"
-        } else {
-            Write-Host "[FIX] Removing $sa from Administrators group"
-            Remove-LocalGroupMember -Group "Administrators" -Member $sa -ErrorAction SilentlyContinue
-        }
-    }
-}
-
-# -------------------------
-# REMOVE UNKNOWN USERS
-# -------------------------
-$allowed = $admins.Keys + $users
-
-foreach ($sysUser in $systemUsers.Name) {
-
-    # Skip built-in accounts
-    if ($ignoreUsers -contains $sysUser) {
-        Write-Host "[INFO] Ignoring built-in account $sysUser"
-        continue
-    }
-
-    if ($allowed -notcontains $sysUser) {
-        if ($dryRun) {
-            Write-Host "[DRY-RUN] Would disable unknown user $sysUser"
-        } else {
-            Write-Host "[FIX] Disabling unknown user $sysUser"
-            Disable-LocalUser -Name $sysUser -ErrorAction SilentlyContinue
-        }
-    }
-}
-
-# -------------------------
-# PASSWORD COMPLEXITY CHECK (for README passwords)
-# -------------------------
-function Test-PasswordComplexity($pw) {
-    if (-not $pw) { return $false }
-    return ($pw.Length -ge 8)   # weak if < 8 chars
-}
-
-# Strong password generator
-function New-StrongPassword {
-    param([int]$Length = 16)
-
-    $chars = @()
-    $chars += [char[]]'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    $chars += [char[]]'abcdefghijklmnopqrstuvwxyz'
-    $chars += [char[]]'0123456789'
-    $chars += [char[]]'!@#$%^&*()-_=+[]{}'
-
-    $pw = -join (1..$Length | ForEach-Object { $chars | Get-Random })
-    return $pw
-}
-
-# -------------------------
-# FIX ADMIN PASSWORDS
-# -------------------------
-foreach ($admin in @($admins.Keys)) {
-    $pw = $admins[$admin]
-
-    if (-not (Test-PasswordComplexity $pw)) {
-        Write-Host "[WARN] Password for $admin is weak or missing. Generating new strong password..."
-        $pw = New-StrongPassword
-        $admins[$admin] = $pw
-    }
-
-    if ($dryRun) {
-        Write-Host "[DRY-RUN] Would set password for $admin"
-    } else {
-        Write-Host "[FIX] Setting password for $admin"
-        $secure = ConvertTo-SecureString $pw -AsPlainText -Force
-        Set-LocalUser -Name $admin -Password $secure -ErrorAction SilentlyContinue
-    }
-}
-
-# -------------------------
-# ENFORCE PASSWORD EXPIRATION FOR ALL AUTHORIZED USERS
-# -------------------------
-Write-Host "`n=== Enforcing Password Expiration for Users/Admins ==="
-
-foreach ($user in ($admins.Keys + $users | Select-Object -Unique)) {
-    if ($dryRun) {
-        Write-Host "[DRY-RUN] Would set password to expire for $user"
-    } else {
-        Write-Host "[FIX] Setting password to expire for $user"
-        try {
-            Set-LocalUser -Name $user -PasswordNeverExpires $false -ErrorAction Stop
-        } catch {
-            Write-Host "[ERROR] Could not modify password expiration for ${user}: $($_.Exception.Message)"
-        }
-    }
-}
-
-# -------------------------
-# ENFORCE SYSTEM PASSWORD POLICY (ATT13 - WORKING, CLEAN)
-# -------------------------
-Write-Host "`n=== Enforcing System Password Policy (ATT13) ==="
-Write-Host "Target values:"
-Write-Host "  Enforce password history: 21"
-Write-Host "  Maximum password age:     30 days"
-Write-Host "  Minimum password age:     5 days"
-Write-Host "  Minimum password length:  8 characters"
-Write-Host "  Complexity:               Enabled"
-Write-Host "  Reversible encryption:    Disabled"
-Write-Host ""
-
-if ($dryRun) {
-    Write-Host "[DRY-RUN] Would run:"
-    Write-Host "  net accounts /uniquepw:21 /maxpwage:30 /minpwage:5 /minpwlen:8"
-    Write-Host "  Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\Lsa PasswordComplexity=1 (DWORD)"
-    Write-Host "  Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\Lsa ClearTextPassword=0 (DWORD)"
-} else {
-    Write-Host "[FIX] Applying password policy via net accounts + registry..."
-
-    try {
-        & net accounts /uniquepw:21 /maxpwage:30 /minpwage:5 /minpwlen:8 | Out-Null
-        Write-Host "[OK] net accounts policy applied."
-    } catch {
-        Write-Host "[ERROR] net accounts failed: $($_.Exception.Message)"
-    }
-
-    try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "PasswordComplexity" -Type DWord -Value 1
-        Write-Host "[OK] PasswordComplexity set to 1 (Enabled)."
-    } catch {
-        Write-Host "[ERROR] Failed to set PasswordComplexity: $($_.Exception.Message)"
-    }
-
-    try {
-        Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "ClearTextPassword" -Type DWord -Value 0
-        Write-Host "[OK] ClearTextPassword set to 0 (Disabled)."
-    } catch {
-        Write-Host "[ERROR] Failed to set ClearTextPassword: $($_.Exception.Message)"
-    }
-}
-
-Write-Host "`n=== Effective Password Policy (net accounts) ==="
-net accounts
-
-Write-Host "`n=== LSA Registry Values (Complexity / Reversible) ==="
-try {
-    $lsa = Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
-    Write-Host "  PasswordComplexity:  $($lsa.PasswordComplexity)"
-    Write-Host "  ClearTextPassword:   $($lsa.ClearTextPassword)"
-} catch {
-    Write-Host "[ERROR] Could not read Lsa registry: $($_.Exception.Message)"
-}
-
-Write-Host "`n=== DONE ==="
-if ($dryRun) {
-    Write-Host "Dry-run complete."
-} else {
-    Write-Host "System now matches README user configuration and password policy."
-}
-</code></pre>
-    </div>
-  </div>
-
-
-  <div class="script-card">
-    <div class="script-card-header">
-      <h2>Windows 11 Full Enforcement Script (ATT14)</h2>
-      <div class="script-card-actions">
-        <a class="btn btn-primary" href="scripts/ATT14_Enforcement.ps1" download>Download .ps1</a>
-        <button class="btn" onclick="cpCopyScript('script-att14', this)">Copy</button>
-      </div>
-    </div>
-    <p class="script-desc">
-      A generic, full-coverage Windows 11 hardening script: parses the README user list (same format as the ATT13 script above), fixes admin/user group membership, deletes unauthorized accounts, sets strong passwords, enforces password expiration, disables Guest, and applies password/lockout policy (history 21, max age 30, min age 5, min length 12, lockout threshold 5 / duration 30 min / window 30 min). Also enforces Security Options (blank passwords, last-username display, CTRL+ALT+DEL, anonymous SAM enumeration, LAN Manager auth level, SMB signing), enables the firewall, disables Remote Desktop and Remote Assistance, disables AutoPlay, enforces UAC/SmartScreen/Defender/audit policy, disables risky services and features (Telnet, TFTP, SMB1, PowerShell v2), scans all user profiles for hacking-tool files, removes a configurable list of unauthorized software, hardens IIS/Apache/SQL Server if present, and reports (without auto-changing) scheduled tasks, startup entries, listening ports, shares, hosts file, and system time for manual review. Supports <code>-DryRun</code> / <code>-Execute</code> switches or interactive prompts, and requires running as Administrator.
-    </p>
-    <div class="script-block-wrap">
-      <pre class="script-block"><code id="script-att14"># ============================================
 # CyberPatriot Windows 11 Enforcement Script
 # Users, Admins, Password Policy, Security Options,
 # Firewall, RDP, Unauthorized Software/Files
@@ -335,7 +12,7 @@ if ($dryRun) {
 # excluded - those must be answered manually).
 # ============================================
 #Requires -RunAsAdministrator
-&lt;#
+<#
 .SYNOPSIS
     CyberPatriot Windows 11 hardening/enforcement script.
 .PARAMETER ReadmePath
@@ -352,7 +29,7 @@ if ($dryRun) {
 .EXAMPLE
     .\ATT14_Enforcement.ps1
     Prompts interactively for both the README path and dry-run/full-execution mode.
-#&gt;
+#>
 [CmdletBinding()]
 param(
     [string]$ReadmePath,
@@ -412,7 +89,7 @@ function Invoke-Fix {
     } else {
         Write-Host "[FIX] $Description"
         try {
-            &amp; $Action
+            & $Action
         } catch {
             Write-Host "[ERROR] Failed to $Description : $($_.Exception.Message)"
         }
@@ -515,7 +192,7 @@ foreach ($admin in $admins.Keys) {
 }
 
 # -------------------------
-# FIX USERS WITH ADMIN PRIVILEGES (unauthorized administrators -&gt; standard users)
+# FIX USERS WITH ADMIN PRIVILEGES (unauthorized administrators -> standard users)
 # -------------------------
 foreach ($sa in $systemAdminsClean) {
     if (($admins.Keys -notcontains $sa) -and ($users -contains $sa)) {
@@ -587,7 +264,7 @@ function New-StrongPassword {
     $upper = [char[]]'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     $lower = [char[]]'abcdefghijklmnopqrstuvwxyz'
     $digit = [char[]]'0123456789'
-    $special = [char[]]'!@#$%^&amp;*()-_=+[]{}'
+    $special = [char[]]'!@#$%^&*()-_=+[]{}'
     $allChars = $upper + $lower + $digit + $special
 
     $required = @(
@@ -666,7 +343,7 @@ if ($guest) {
 # -------------------------
 # ENFORCE SYSTEM PASSWORD POLICY / LOCKOUT POLICY (ATT14)
 # -------------------------
-Write-Host "`n=== Enforcing System Password &amp; Lockout Policy ==="
+Write-Host "`n=== Enforcing System Password & Lockout Policy ==="
 Write-Host "Target values:"
 Write-Host "  Enforce password history:  21"
 Write-Host "  Maximum password age:      30 days"
@@ -688,7 +365,7 @@ if ($dryRun) {
     Write-Host "[FIX] Applying password/lockout policy via net accounts + registry..."
 
     try {
-        &amp; net accounts /uniquepw:21 /maxpwage:30 /minpwage:5 /minpwlen:12 /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30 | Out-Null
+        & net accounts /uniquepw:21 /maxpwage:30 /minpwage:5 /minpwlen:12 /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30 | Out-Null
         Write-Host "[OK] net accounts policy applied."
     } catch {
         Write-Host "[ERROR] net accounts failed: $($_.Exception.Message)"
@@ -714,14 +391,14 @@ if ($dryRun) {
 # -------------------------
 Write-Host "`n=== Enforcing Local Security Options ==="
 
-# Microsoft network client: Digitally sign communications (always) -&gt; Enabled
+# Microsoft network client: Digitally sign communications (always) -> Enabled
 Invoke-Fix -Description "enable 'Microsoft network client: Digitally sign communications (always)'" -Action {
     $path = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters"
     if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
     Set-ItemProperty -Path $path -Name "RequireSecuritySignature" -Type DWord -Value 1 -ErrorAction Stop
 }
 
-# Interactive logon: Do not require CTRL+ALT+DEL -&gt; Disabled
+# Interactive logon: Do not require CTRL+ALT+DEL -> Disabled
 Invoke-Fix -Description "disable 'Interactive logon: Do not require CTRL+ALT+DEL'" -Action {
     $path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
     if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
@@ -865,7 +542,7 @@ $unauthorizedSoftware = @(
     "Metasploit",
     "John the Ripper",
     "Hydra",
-    "Cain &amp; Abel",
+    "Cain & Abel",
     "TeamViewer",
     "AnyDesk",
     "VNC"
@@ -936,18 +613,18 @@ if ($winget) {
         } else {
             Write-Host "[FIX] Attempting winget upgrade for $($sw.Name)..."
             try {
-                &amp; winget upgrade --id $sw.Id --silent --accept-source-agreements --accept-package-agreements -e | Out-Null
+                & winget upgrade --id $sw.Id --silent --accept-source-agreements --accept-package-agreements -e | Out-Null
             } catch {
                 Write-Host "[WARN] winget upgrade for $($sw.Name) failed or was not applicable: $($_.Exception.Message)"
             }
         }
     }
 } else {
-    Write-Host "[WARN] winget is not available on this system. Notepad++ and Google Chrome must be updated manually (Help &gt; Update Notepad++ / chrome://settings/help)."
+    Write-Host "[WARN] winget is not available on this system. Notepad++ and Google Chrome must be updated manually (Help > Update Notepad++ / chrome://settings/help)."
 }
 
 # -------------------------
-# HIDDEN ACCOUNTS &amp; AUTOLOGON
+# HIDDEN ACCOUNTS & AUTOLOGON
 # -------------------------
 Write-Host "`n=== Checking for Hidden Accounts and Autologon ==="
 
@@ -1037,7 +714,7 @@ $auditCategories = @(
 )
 foreach ($cat in $auditCategories) {
     Invoke-Fix -Description "enable success and failure auditing for '$cat'" -Action {
-        &amp; auditpol /set /category:"$cat" /success:enable /failure:enable | Out-Null
+        & auditpol /set /category:"$cat" /success:enable /failure:enable | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "auditpol exited with code $LASTEXITCODE" }
     }
 }
@@ -1257,10 +934,10 @@ if ($dryRun) {
     Write-Host "[DRY-RUN] Would trigger a Windows Update scan via UsoClient.exe"
 } else {
     try {
-        &amp; UsoClient.exe StartScan | Out-Null
-        Write-Host "[OK] Triggered a Windows Update scan. Check Settings &gt; Windows Update for progress - multiple passes/reboots may be needed."
+        & UsoClient.exe StartScan | Out-Null
+        Write-Host "[OK] Triggered a Windows Update scan. Check Settings > Windows Update for progress - multiple passes/reboots may be needed."
     } catch {
-        Write-Host "[WARN] Could not trigger a Windows Update scan automatically. Check Settings &gt; Windows Update manually."
+        Write-Host "[WARN] Could not trigger a Windows Update scan automatically. Check Settings > Windows Update manually."
     }
 }
 
@@ -1274,7 +951,7 @@ if (Get-Service -Name "W3SVC" -ErrorAction SilentlyContinue) {
     $appcmd = Join-Path $env:SystemRoot "System32\inetsrv\appcmd.exe"
     if (Test-Path $appcmd) {
         Invoke-Fix -Description "disable IIS directory browsing site-wide" -Action {
-            &amp; $appcmd set config -section:system.webServer/directoryBrowse /enabled:"False" /commit:apphost | Out-Null
+            & $appcmd set config -section:system.webServer/directoryBrowse /enabled:"False" /commit:apphost | Out-Null
         }
     }
 } else {
@@ -1307,7 +984,7 @@ if ($apacheConf) {
 if (Get-Command sqlcmd -ErrorAction SilentlyContinue) {
     Invoke-Fix -Description "disable xp_cmdshell on the local SQL Server instance" -Action {
         $sql = "EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'xp_cmdshell', 0; RECONFIGURE;"
-        &amp; sqlcmd -S "." -Q $sql -b | Out-Null
+        & sqlcmd -S "." -Q $sql -b | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "sqlcmd exited with code $LASTEXITCODE" }
     }
 } else {
@@ -1365,7 +1042,7 @@ Write-Host "`n--- Network Shares (excluding default admin shares) ---"
 try {
     Get-SmbShare -ErrorAction Stop |
         Where-Object { $_.Name -notin @("C$", "ADMIN$", "IPC$", "print$") } |
-        ForEach-Object { Write-Host "  $($_.Name) -&gt; $($_.Path)" }
+        ForEach-Object { Write-Host "  $($_.Name) -> $($_.Path)" }
 } catch {
     Write-Host "  [WARN] Could not enumerate SMB shares: $($_.Exception.Message)"
 }
@@ -1405,46 +1082,3 @@ Write-Host "Reminder: Print Spooler was disabled by default (`$disablePrintSpool
 Write-Host "Reminder: The 'riskyServices'/'riskyFeatures'/'unauthorizedSoftware' lists were disabled/removed unconditionally - re-check them against your README before running in full-execution mode."
 Write-Host "Reminder: See the Manual-Review Report above (scheduled tasks, startup items, listening ports, shares, hosts file, time zone) - those are reported only, not auto-changed."
 Write-Host "Reminder: Windows Update, gpedit.msc-equivalent policies, and Local Security Policy changes may require a reboot or 'gpupdate /force' to fully take effect and be reflected by the scoring engine."
-</code></pre>
-    </div>
-  </div>
-
-  <div class="hub-links">
-    <h3>More scripts coming</h3>
-    <ul>
-      <li>This page will grow as more scripts are added — each gets its own card with a description, download button, and copy-paste block.</li>
-      <li><a href="index.html">Back to home</a></li>
-    </ul>
-  </div>
-
-  <footer>Practice on official CyberPatriot practice images before competition day.</footer>
-</div>
-
-<script>
-function cpCopyScript(id, btn) {
-  const text = document.getElementById(id).textContent;
-  const done = () => {
-    const original = btn.textContent;
-    btn.textContent = "Copied!";
-    setTimeout(() => { btn.textContent = original; }, 1500);
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
-  } else {
-    fallbackCopy(text, done);
-  }
-}
-function fallbackCopy(text, done) {
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.select();
-  try { document.execCommand("copy"); } catch (e) {}
-  document.body.removeChild(ta);
-  done();
-}
-</script>
-</body>
-</html>

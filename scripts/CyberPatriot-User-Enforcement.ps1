@@ -1,7 +1,7 @@
 # ============================================
 # CyberPatriot User Enforcement Script (ATT13)
 # Users, Admins, Password Expiration, Policy
-# CLEAN VERSION – WORKING PASSWORD POLICY
+# CLEAN VERSION - WORKING PASSWORD POLICY
 # Compatible with Windows PowerShell 5.1+
 # ============================================
 
@@ -211,7 +211,7 @@ foreach ($user in ($admins.Keys + $users | Select-Object -Unique)) {
 }
 
 # -------------------------
-# ENFORCE SYSTEM PASSWORD POLICY (ATT13 – WORKING, CLEAN)
+# ENFORCE SYSTEM PASSWORD POLICY (ATT13 - WORKING, CLEAN)
 # -------------------------
 Write-Host "`n=== Enforcing System Password Policy (ATT13) ==="
 Write-Host "Target values:"
