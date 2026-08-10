@@ -4672,6 +4672,28 @@ let isLoadingCommunityScripts = false;
 let pageLoadedAt = Date.now();
 let submitCooldownUntil = 0;
 
+function loadOwnedCommunityScriptIds() {
+  const stored = localStorage.getItem('cyberpatriot_owned_community_scripts');
+  return stored ? JSON.parse(stored) : [];
+}
+
+function saveOwnedCommunityScriptIds(ids) {
+  localStorage.setItem('cyberpatriot_owned_community_scripts', JSON.stringify(ids));
+}
+
+function addOwnedCommunityScriptId(id) {
+  const ids = loadOwnedCommunityScriptIds();
+  if (!ids.includes(id)) {
+    ids.push(id);
+    saveOwnedCommunityScriptIds(ids);
+  }
+}
+
+function removeOwnedCommunityScriptId(id) {
+  const ids = loadOwnedCommunityScriptIds().filter((existing) => existing !== id);
+  saveOwnedCommunityScriptIds(ids);
+}
+
 // Fetch community scripts from API
 async function fetchCommunityScripts() {
   if (isLoadingCommunityScripts) return;
@@ -4682,11 +4704,13 @@ async function fetchCommunityScripts() {
     if (!response.ok) throw new Error('Failed to fetch scripts');
     
     const data = await response.json();
+    const ownedIds = loadOwnedCommunityScriptIds();
     communityScripts = (data.scripts || []).map(script => ({
       ...script,
       id: script.id || 'community-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
       isBuiltin: false,
       isCommunity: true,
+      isOwned: ownedIds.includes(script.id),
       type: script.filename && script.filename.endsWith('.ps1') ? 'windows' : 'linux'
     }));
   } catch (err) {
@@ -4734,8 +4758,13 @@ function deleteUserScript(scriptId) {
   }
   
   let userScripts = loadUserScripts();
+  const originalLength = userScripts.length;
   userScripts = userScripts.filter(s => s.id !== scriptId);
-  saveUserScripts(userScripts);
+  if (userScripts.length !== originalLength) {
+    saveUserScripts(userScripts);
+  } else {
+    removeOwnedCommunityScriptId(scriptId);
+  }
   
   renderScripts();
   renderSidebar();
@@ -4776,7 +4805,7 @@ function renderScripts() {
     
     const typeLabel = script.type === 'windows' ? '.ps1' : '.sh';
     const downloadExt = script.type === 'windows' ? '.ps1' : '.sh';
-    const isOwned = !script.isCommunity;
+    const isOwned = !script.isCommunity || script.isOwned;
     
     card.innerHTML = `
       <div class="script-card-header">
@@ -4881,9 +4910,13 @@ document.getElementById('add-script-form').addEventListener('submit', async func
       })
     });
     
+    const responseData = await response.json();
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to submit script');
+      throw new Error(responseData.error || 'Failed to submit script');
+    }
+    
+    if (responseData.entry && responseData.entry.id) {
+      addOwnedCommunityScriptId(responseData.entry.id);
     }
     
     showMessage('Script submitted to community! Refreshing list...', 'success');
