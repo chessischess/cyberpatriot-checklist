@@ -8,21 +8,26 @@
 <style>
 /* Sidebar layout */
 .scripts-container {
-  display: flex;
-  gap: 20px;
+  display: block;
 }
 
 #scripts-sidebar {
-  flex-shrink: 0;
-  width: 250px;
+  position: fixed;
+  top: 120px;
+  left: 0;
+  bottom: 0;
+  width: 270px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 15px;
-  max-height: 600px;
+  border-radius: 0 8px 8px 0;
+  padding: 20px;
   overflow-y: auto;
-  position: sticky;
-  top: 20px;
+  z-index: 10;
+}
+
+.scripts-content {
+  margin-left: 300px;
+  min-width: 0;
 }
 
 #scripts-sidebar h3 {
@@ -192,6 +197,21 @@
   border-left: 4px solid var(--accent);
 }
 
+.script-card.community-submitted {
+  border-left: none;
+}
+
+.script-tag {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #5a7cff;
+  color: white;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
 .script-type-badge {
   display: inline-block;
   padding: 4px 8px;
@@ -225,6 +245,11 @@
     width: 100%;
     max-height: none;
     position: static;
+    border-radius: 8px;
+  }
+
+  .scripts-content {
+    margin-left: 0;
   }
 }
 </style>
@@ -4644,6 +4669,8 @@ const BUILTIN_SCRIPTS = [
 // Global state for community scripts
 let communityScripts = [];
 let isLoadingCommunityScripts = false;
+let pageLoadedAt = Date.now();
+let submitCooldownUntil = 0;
 
 // Fetch community scripts from API
 async function fetchCommunityScripts() {
@@ -4755,7 +4782,7 @@ function renderScripts() {
       <div class="script-card-header">
         <h2>${escapeHtml(script.name || script.title)}
           <span class="script-type-badge">${typeLabel}</span>
-          <span class="user-script-indicator">${script.isCommunity ? 'COMMUNITY' : 'YOUR SCRIPT'}</span>
+          ${script.isCommunity ? '<span class="script-tag">COMMUNITY</span>' : ''}
         </h2>
         <div class="script-card-actions">
           <button class="btn btn-primary" onclick="downloadScript('${(script.name || script.title).replace(/'/g, "\\'")}', document.getElementById('script-${script.id}').textContent, '${script.type}')">Download ${downloadExt}</button>
@@ -4763,6 +4790,7 @@ function renderScripts() {
           ${isOwned ? `<button class="btn" onclick="deleteUserScript('${script.id}')">Delete</button>` : ''}
         </div>
       </div>
+      ${script.description ? `<p class="script-desc">${escapeHtml(script.description)}</p>` : ''}
       <div class="script-block-wrap">
         <pre class="script-block"><code id="script-${script.id}">${escapeHtml(script.content)}</code></pre>
       </div>
@@ -4822,6 +4850,12 @@ document.getElementById('add-script-form').addEventListener('submit', async func
     return;
   }
   
+  if (Date.now() < submitCooldownUntil) {
+    const waitSeconds = Math.ceil((submitCooldownUntil - Date.now()) / 1000);
+    showMessage(`Please wait ${waitSeconds} second${waitSeconds !== 1 ? 's' : ''} before submitting another script.`, 'error');
+    return;
+  }
+  
   if (content.length > 300000) { // 300KB limit
     showMessage('Script content is too large. Maximum 300KB allowed.', 'error');
     return;
@@ -4843,7 +4877,7 @@ document.getElementById('add-script-form').addEventListener('submit', async func
         description: '',
         author: '',
         hp: '',
-        loadedAt: Date.now()
+        loadedAt: pageLoadedAt
       })
     });
     
@@ -4853,6 +4887,7 @@ document.getElementById('add-script-form').addEventListener('submit', async func
     }
     
     showMessage('Script submitted to community! Refreshing list...', 'success');
+    submitCooldownUntil = Date.now() + 20000;
     
     // Reset form
     this.reset();
@@ -4884,6 +4919,7 @@ function showMessage(text, type) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
+  pageLoadedAt = Date.now();
   await fetchCommunityScripts();
   renderScripts();
   renderSidebar();
