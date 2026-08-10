@@ -5,6 +5,229 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Scripts | CyberPatriot</title>
 <link rel="stylesheet" href="style.css">
+<style>
+/* Sidebar layout */
+.scripts-container {
+  display: flex;
+  gap: 20px;
+}
+
+#scripts-sidebar {
+  flex-shrink: 0;
+  width: 250px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 15px;
+  max-height: 600px;
+  overflow-y: auto;
+  position: sticky;
+  top: 20px;
+}
+
+#scripts-sidebar h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.1em;
+  color: var(--text);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 10px;
+}
+
+.script-nav-item {
+  display: block;
+  padding: 8px 12px;
+  margin: 5px 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  color: var(--text);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.script-nav-item:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.script-nav-item.active {
+  background: var(--accent);
+  color: white;
+  font-weight: bold;
+}
+
+.script-nav-label {
+  font-size: 0.75em;
+  opacity: 0.7;
+  margin-left: 5px;
+}
+
+.scripts-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Form styling */
+#community-scripts {
+  background: var(--card);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+#community-scripts h2 {
+  color: var(--text);
+  margin-top: 0;
+}
+
+.script-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-weight: bold;
+  color: var(--text);
+  font-size: 0.95em;
+}
+
+.form-group input[type="text"],
+.form-group select,
+.form-group textarea {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+.form-group input[type="text"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent), 0.1);
+}
+
+.form-group textarea {
+  min-height: 150px;
+  font-family: 'Courier New', monospace;
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.btn-submit {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: opacity 0.2s;
+}
+
+.btn-submit:hover {
+  opacity: 0.9;
+}
+
+.btn-submit:active {
+  opacity: 0.8;
+}
+
+.btn-reset {
+  background: var(--border);
+  color: var(--text);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-reset:hover {
+  opacity: 0.8;
+}
+
+.form-message {
+  padding: 10px 15px;
+  border-radius: 4px;
+  display: none;
+  margin-top: 10px;
+}
+
+.form-message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  display: block;
+}
+
+.form-message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  display: block;
+}
+
+/* User script indicator */
+.script-card.user-submitted {
+  border-left: 4px solid var(--accent);
+}
+
+.script-type-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--accent);
+  color: white;
+  border-radius: 3px;
+  font-size: 0.8em;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.user-script-indicator {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #ffc107;
+  color: #000;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .scripts-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  #scripts-sidebar {
+    width: 100%;
+    max-height: none;
+    position: static;
+  }
+}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -17,11 +240,53 @@
   </nav>
 
   <h1>Scripts</h1>
-  <div class="sub">Automation scripts for repetitive CyberPatriot tasks. Always run on a practice image first and read through the script before running it on competition day — never blind-run someone else's script.</div>
+  <div class="sub">Automation scripts for repetitive CyberPatriot tasks. Always run on a practice image first and read through the script before running it on competition day — never blind-run someone else's script. Have one to share? <a href="#community-scripts">Add a script</a>.</div>
 
-  <div class="script-card">
+  <div class="scripts-container">
+    <aside id="scripts-sidebar">
+      <h3>Scripts</h3>
+      <div id="sidebar-list"></div>
+    </aside>
+
+    <div class="scripts-content">
+      <section id="community-scripts">
+        <h2>Add Your Own Script</h2>
+        <form class="script-form" id="add-script-form">
+          <div class="form-group">
+            <label for="script-name">Script Name *</label>
+            <input type="text" id="script-name" name="name" placeholder="e.g., User Cleanup Script" required maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label for="script-type">Script Type *</label>
+            <select id="script-type" name="type" required>
+              <option value="">-- Select Type --</option>
+              <option value="windows">Windows PowerShell (.ps1)</option>
+              <option value="linux">Linux Bash (.sh)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="script-content">Script Content *</label>
+            <textarea id="script-content" name="content" placeholder="Paste your script here..." required></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-submit">Add Script</button>
+            <button type="reset" class="btn btn-reset">Clear</button>
+          </div>
+
+          <div class="form-message" id="form-message"></div>
+        </form>
+      </section>
+
+      <div id="scripts-list"></div>
+    </div>
+  </div>
+
+  <div class="script-card" id="script-att13">
     <div class="script-card-header">
-      <h2>User Enforcement Script (ATT13)</h2>
+      <h2>User Enforcement Script (ATT13) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
         <a class="btn btn-primary" href="scripts/CyberPatriot-User-Enforcement.ps1" download>Download .ps1</a>
         <button class="btn" onclick="cpCopyScript('script-att13', this)">Copy</button>
@@ -309,9 +574,9 @@ if ($dryRun) {
   </div>
 
 
-  <div class="script-card">
+  <div class="script-card" id="script-att14">
     <div class="script-card-header">
-      <h2>Windows 11 Full Enforcement Script (ATT14)</h2>
+      <h2>Windows 11 Full Enforcement Script (ATT14) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
         <a class="btn btn-primary" href="scripts/ATT14_Enforcement.ps1" download>Download .ps1</a>
         <button class="btn" onclick="cpCopyScript('script-att14', this)">Copy</button>
@@ -1410,9 +1675,9 @@ Write-Host "Reminder: Windows Update, gpedit.msc-equivalent policies, and Local 
   </div>
 
 
-  <div class="script-card">
+  <div class="script-card" id="script-att15">
     <div class="script-card-header">
-      <h2>Windows 11 Full Enforcement Script (ATT15)</h2>
+      <h2>Windows 11 Full Enforcement Script (ATT15) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
         <a class="btn btn-primary" href="scripts/ATT15_Enforcement.ps1" download>Download .ps1</a>
         <button class="btn" onclick="cpCopyScript('script-att15', this)">Copy</button>
@@ -2628,9 +2893,9 @@ Write-Host "Reminder: Windows Update, gpedit.msc-equivalent policies, and Local 
   </div>
 
 
-  <div class="script-card">
+  <div class="script-card" id="script-att16">
     <div class="script-card-header">
-      <h2>Windows 11 Full Enforcement Script (ATT16)</h2>
+      <h2>Windows 11 Full Enforcement Script (ATT16) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
         <a class="btn btn-primary" href="scripts/ATT16_Enforcement.ps1" download>Download .ps1</a>
         <button class="btn" onclick="cpCopyScript('script-att16', this)">Copy</button>
@@ -4289,6 +4554,48 @@ echo "Script finished."
     </div>
   </div>
 
+  <section id="community-scripts" class="community-section">
+    <h2>Community Scripts</h2>
+    <div class="warning-banner">
+      <strong>Not reviewed by site admins.</strong> Anyone can submit a script here and it publishes immediately, with no review. Read a script fully before running it — especially anything that asks for Administrator or root — the same way you would for any script from a stranger on the internet.
+    </div>
+
+    <form id="script-submit-form" class="script-form">
+      <div class="form-row">
+        <label for="cs-title">Title</label>
+        <input type="text" id="cs-title" maxlength="120" required placeholder="e.g. Quick service audit">
+      </div>
+      <div class="form-row">
+        <label for="cs-author">Your name / handle (optional)</label>
+        <input type="text" id="cs-author" maxlength="80" placeholder="optional">
+      </div>
+      <div class="form-row">
+        <label for="cs-filename">Filename (with extension)</label>
+        <input type="text" id="cs-filename" maxlength="80" required placeholder="e.g. my-script.ps1">
+      </div>
+      <div class="form-row">
+        <label for="cs-description">Description</label>
+        <textarea id="cs-description" maxlength="3000" rows="3" required placeholder="What does it do? What does it need to run?"></textarea>
+      </div>
+      <div class="form-row">
+        <label for="cs-content">Script content</label>
+        <textarea id="cs-content" rows="12" required placeholder="Paste the full script here" spellcheck="false"></textarea>
+      </div>
+      <div class="form-row" style="position:absolute;left:-9999px;" aria-hidden="true">
+        <label for="cs-hp">Leave blank</label>
+        <input type="text" id="cs-hp" tabindex="-1" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <button type="submit" class="btn btn-primary" id="cs-submit-btn">Submit script</button>
+        <span id="cs-status" class="cs-status"></span>
+      </div>
+    </form>
+
+    <div id="community-list" class="community-list">
+      <p class="cs-empty">Loading community scripts…</p>
+    </div>
+  </section>
+
   <div class="hub-links">
     <h3>More scripts coming</h3>
     <ul>
@@ -4300,31 +4607,245 @@ echo "Script finished."
   <footer>Practice on official CyberPatriot practice images before competition day.</footer>
 </div>
 
+<script src="checklist.js"></script>
 <script>
-function cpCopyScript(id, btn) {
-  const text = document.getElementById(id).textContent;
-  const done = () => {
-    const original = btn.textContent;
-    btn.textContent = "Copied!";
-    setTimeout(() => { btn.textContent = original; }, 1500);
+// Built-in scripts definition
+const BUILTIN_SCRIPTS = [
+  {
+    id: 'att13',
+    name: 'User Enforcement Script (ATT13)',
+    type: 'windows',
+    fileName: 'CyberPatriot-User-Enforcement.ps1',
+    isBuiltin: true
+  },
+  {
+    id: 'att14',
+    name: 'Windows 11 Full Enforcement Script (ATT14)',
+    type: 'windows',
+    fileName: 'ATT14_Enforcement.ps1',
+    isBuiltin: true
+  },
+  {
+    id: 'att15',
+    name: 'Windows 11 Full Enforcement Script (ATT15)',
+    type: 'windows',
+    fileName: 'ATT15_Enforcement.ps1',
+    isBuiltin: true
+  },
+  {
+    id: 'att16',
+    name: 'Windows 11 Full Enforcement Script (ATT16)',
+    type: 'windows',
+    fileName: 'ATT16_Enforcement.ps1',
+    isBuiltin: true
+  }
+];
+
+// Local storage functions
+function loadUserScripts() {
+  const stored = localStorage.getItem('cyberpatriot_user_scripts');
+  return stored ? JSON.parse(stored) : [];
+}
+
+function saveUserScripts(scripts) {
+  localStorage.setItem('cyberpatriot_user_scripts', JSON.stringify(scripts));
+}
+
+function generateScriptId() {
+  return 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
+
+// Download script function
+function downloadScript(name, content, type) {
+  const ext = type === 'windows' ? '.ps1' : '.sh';
+  const filename = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + ext;
+  
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+// Delete user script function
+function deleteUserScript(scriptId) {
+  if (!confirm('Are you sure you want to delete this script?')) {
+    return;
+  }
+  
+  let userScripts = loadUserScripts();
+  userScripts = userScripts.filter(s => s.id !== scriptId);
+  saveUserScripts(userScripts);
+  
+  renderScripts();
+  renderSidebar();
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
   };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
-  } else {
-    fallbackCopy(text, done);
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Render script cards - dynamically update the scripts list
+function renderScripts() {
+  const userScripts = loadUserScripts();
+  
+  const scriptsListDiv = document.getElementById('scripts-list');
+  
+  // Clear only user scripts from the DOM
+  const existingCards = scriptsListDiv.querySelectorAll('.script-card');
+  existingCards.forEach(card => {
+    if (card.classList.contains('user-submitted')) {
+      card.remove();
+    }
+  });
+  
+  // Add user scripts
+  userScripts.forEach(script => {
+    const card = document.createElement('div');
+    card.className = 'script-card user-submitted';
+    card.id = 'script-' + script.id;
+    
+    const typeLabel = script.type === 'windows' ? '.ps1' : '.sh';
+    const downloadExt = script.type === 'windows' ? '.ps1' : '.sh';
+    
+    card.innerHTML = `
+      <div class="script-card-header">
+        <h2>${escapeHtml(script.name)}
+          <span class="script-type-badge">${typeLabel}</span>
+          <span class="user-script-indicator">COMMUNITY</span>
+        </h2>
+        <div class="script-card-actions">
+          <button class="btn btn-primary" onclick="downloadScript('${script.name.replace(/'/g, "\\'")}', document.getElementById('script-${script.id}').textContent, '${script.type}')">Download ${downloadExt}</button>
+          <button class="btn" onclick="cpCopyScript('script-${script.id}', this)">Copy</button>
+          <button class="btn" onclick="deleteUserScript('${script.id}')">Delete</button>
+        </div>
+      </div>
+      <div class="script-block-wrap">
+        <pre class="script-block"><code id="script-${script.id}">${escapeHtml(script.content)}</code></pre>
+      </div>
+    `;
+    
+    scriptsListDiv.appendChild(card);
+  });
+}
+
+// Render sidebar navigation
+function renderSidebar() {
+  const userScripts = loadUserScripts();
+  const allScripts = [...BUILTIN_SCRIPTS, ...userScripts];
+  
+  const sidebarList = document.getElementById('sidebar-list');
+  sidebarList.innerHTML = '';
+  
+  allScripts.forEach(script => {
+    const item = document.createElement('a');
+    item.className = 'script-nav-item';
+    item.href = '#script-' + script.id;
+    item.textContent = script.name;
+    
+    if (!script.isBuiltin) {
+      const badge = document.createElement('span');
+      badge.className = 'script-nav-label';
+      badge.textContent = '(Community)';
+      item.appendChild(badge);
+    }
+    
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.getElementById('script-' + script.id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Update active state
+        document.querySelectorAll('.script-nav-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+      }
+    });
+    
+    sidebarList.appendChild(item);
+  });
+}
+
+// Form submission
+document.getElementById('add-script-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const name = document.getElementById('script-name').value.trim();
+  const type = document.getElementById('script-type').value;
+  const content = document.getElementById('script-content').value.trim();
+  
+  if (!name || !type || !content) {
+    showMessage('Please fill in all required fields.', 'error');
+    return;
+  }
+  
+  if (content.length > 300000) { // 300KB limit
+    showMessage('Script content is too large. Maximum 300KB allowed.', 'error');
+    return;
+  }
+  
+  const userScript = {
+    id: generateScriptId(),
+    name: name,
+    type: type,
+    content: content,
+    createdAt: new Date().toISOString(),
+    isBuiltin: false
+  };
+  
+  let userScripts = loadUserScripts();
+  userScripts.push(userScript);
+  saveUserScripts(userScripts);
+  
+  showMessage('Script added successfully! You can see it in the list below.', 'success');
+  
+  // Reset form
+  this.reset();
+  document.getElementById('script-type').value = '';
+  
+  // Render updated scripts
+  renderScripts();
+  renderSidebar();
+  
+  // Scroll to the new script
+  setTimeout(() => {
+    const newScriptElement = document.getElementById('script-' + userScript.id);
+    if (newScriptElement) {
+      newScriptElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
+});
+
+// Show/hide form message
+function showMessage(text, type) {
+  const messageDiv = document.getElementById('form-message');
+  messageDiv.textContent = text;
+  messageDiv.className = 'form-message ' + type;
+  
+  if (type === 'success') {
+    setTimeout(() => {
+      messageDiv.className = 'form-message';
+    }, 5000);
   }
 }
-function fallbackCopy(text, done) {
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.select();
-  try { document.execCommand("copy"); } catch (e) {}
-  document.body.removeChild(ta);
-  done();
-}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  renderScripts();
+  renderSidebar();
+});
 </script>
 </body>
 </html>

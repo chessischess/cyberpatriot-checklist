@@ -1,0 +1,15 @@
+{
+  "name": "cyberpatriot",
+  "version": "1.0.0",
+  "description": "Interactive, self-contained HTML checklists for hardening Windows Client, Windows Server, and Linux images in CyberPatriot competitions (finals-round level, 4-hour rounds). Every item expands into exact step-by-step instructions — precise menu paths, commands, and what to click. Progress is saved locally per-page in the browser (`localStorage`) — no backend needed.",
+  "main": "checklist.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/blob": "^2.7.0"
+  }
+}
