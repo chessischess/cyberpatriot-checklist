@@ -4641,6 +4641,35 @@ const BUILTIN_SCRIPTS = [
   }
 ];
 
+// Global state for community scripts
+let communityScripts = [];
+let isLoadingCommunityScripts = false;
+
+// Fetch community scripts from API
+async function fetchCommunityScripts() {
+  if (isLoadingCommunityScripts) return;
+  isLoadingCommunityScripts = true;
+  
+  try {
+    const response = await fetch('/api/scripts-list');
+    if (!response.ok) throw new Error('Failed to fetch scripts');
+    
+    const data = await response.json();
+    communityScripts = (data.scripts || []).map(script => ({
+      ...script,
+      id: script.id || 'community-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+      isBuiltin: false,
+      isCommunity: true,
+      type: script.filename && script.filename.endsWith('.ps1') ? 'windows' : 'linux'
+    }));
+  } catch (err) {
+    console.error('Error fetching community scripts:', err);
+    communityScripts = [];
+  } finally {
+    isLoadingCommunityScripts = false;
+  }
+}
+
 // Local storage functions
 function loadUserScripts() {
   const stored = localStorage.getItem('cyberpatriot_user_scripts');
@@ -4700,36 +4729,38 @@ function escapeHtml(text) {
 // Render script cards - dynamically update the scripts list
 function renderScripts() {
   const userScripts = loadUserScripts();
+  const allUserAndCommunityScripts = [...userScripts, ...communityScripts];
   
   const scriptsListDiv = document.getElementById('scripts-list');
   
-  // Clear only user scripts from the DOM
+  // Clear only user and community scripts from the DOM
   const existingCards = scriptsListDiv.querySelectorAll('.script-card');
   existingCards.forEach(card => {
-    if (card.classList.contains('user-submitted')) {
+    if (card.classList.contains('user-submitted') || card.classList.contains('community-submitted')) {
       card.remove();
     }
   });
   
-  // Add user scripts
-  userScripts.forEach(script => {
+  // Add user and community scripts
+  allUserAndCommunityScripts.forEach(script => {
     const card = document.createElement('div');
-    card.className = 'script-card user-submitted';
+    card.className = 'script-card ' + (script.isCommunity ? 'community-submitted' : 'user-submitted');
     card.id = 'script-' + script.id;
     
     const typeLabel = script.type === 'windows' ? '.ps1' : '.sh';
     const downloadExt = script.type === 'windows' ? '.ps1' : '.sh';
+    const isOwned = !script.isCommunity;
     
     card.innerHTML = `
       <div class="script-card-header">
-        <h2>${escapeHtml(script.name)}
+        <h2>${escapeHtml(script.name || script.title)}
           <span class="script-type-badge">${typeLabel}</span>
-          <span class="user-script-indicator">COMMUNITY</span>
+          <span class="user-script-indicator">${script.isCommunity ? 'COMMUNITY' : 'YOUR SCRIPT'}</span>
         </h2>
         <div class="script-card-actions">
-          <button class="btn btn-primary" onclick="downloadScript('${script.name.replace(/'/g, "\\'")}', document.getElementById('script-${script.id}').textContent, '${script.type}')">Download ${downloadExt}</button>
+          <button class="btn btn-primary" onclick="downloadScript('${(script.name || script.title).replace(/'/g, "\\'")}', document.getElementById('script-${script.id}').textContent, '${script.type}')">Download ${downloadExt}</button>
           <button class="btn" onclick="cpCopyScript('script-${script.id}', this)">Copy</button>
-          <button class="btn" onclick="deleteUserScript('${script.id}')">Delete</button>
+          ${isOwned ? `<button class="btn" onclick="deleteUserScript('${script.id}')">Delete</button>` : ''}
         </div>
       </div>
       <div class="script-block-wrap">
@@ -4744,7 +4775,7 @@ function renderScripts() {
 // Render sidebar navigation
 function renderSidebar() {
   const userScripts = loadUserScripts();
-  const allScripts = [...BUILTIN_SCRIPTS, ...userScripts];
+  const allScripts = [...BUILTIN_SCRIPTS, ...userScripts, ...communityScripts];
   
   const sidebarList = document.getElementById('sidebar-list');
   sidebarList.innerHTML = '';
@@ -4779,7 +4810,7 @@ function renderSidebar() {
 }
 
 // Form submission
-document.getElementById('add-script-form').addEventListener('submit', function(e) {
+document.getElementById('add-script-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   
   const name = document.getElementById('script-name').value.trim();
@@ -4796,36 +4827,46 @@ document.getElementById('add-script-form').addEventListener('submit', function(e
     return;
   }
   
-  const userScript = {
-    id: generateScriptId(),
-    name: name,
-    type: type,
-    content: content,
-    createdAt: new Date().toISOString(),
-    isBuiltin: false
-  };
+  // Generate filename for API
+  const ext = type === 'windows' ? '.ps1' : '.sh';
+  const filename = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + ext;
   
-  let userScripts = loadUserScripts();
-  userScripts.push(userScript);
-  saveUserScripts(userScripts);
-  
-  showMessage('Script added successfully! You can see it in the list below.', 'success');
-  
-  // Reset form
-  this.reset();
-  document.getElementById('script-type').value = '';
-  
-  // Render updated scripts
-  renderScripts();
-  renderSidebar();
-  
-  // Scroll to the new script
-  setTimeout(() => {
-    const newScriptElement = document.getElementById('script-' + userScript.id);
-    if (newScriptElement) {
-      newScriptElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  try {
+    // Submit to API for cloud storage
+    const response = await fetch('/api/scripts-submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: name,
+        filename: filename,
+        content: content,
+        description: '',
+        author: '',
+        hp: '',
+        loadedAt: Date.now()
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to submit script');
     }
-  }, 100);
+    
+    showMessage('Script submitted to community! Refreshing list...', 'success');
+    
+    // Reset form
+    this.reset();
+    document.getElementById('script-type').value = '';
+    
+    // Refresh community scripts from API
+    await fetchCommunityScripts();
+    renderScripts();
+    renderSidebar();
+    
+  } catch (err) {
+    console.error('Error submitting script:', err);
+    showMessage('Error: ' + err.message, 'error');
+  }
 });
 
 // Show/hide form message
@@ -4842,7 +4883,8 @@ function showMessage(text, type) {
 }
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  await fetchCommunityScripts();
   renderScripts();
   renderSidebar();
 });
