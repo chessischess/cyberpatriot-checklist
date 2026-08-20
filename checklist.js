@@ -28,7 +28,8 @@ function cpItem(item) {
 
 // Converts `code` spans in a string to <code>...</code>. Text is otherwise treated as plain (escaped).
 function cpInline(text) {
-  const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safe = (text === undefined || text === null) ? '' : String(text);
+  const escaped = safe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return escaped.replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
