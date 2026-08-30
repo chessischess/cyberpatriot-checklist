@@ -69,6 +69,27 @@
   margin-left: 5px;
 }
 
+.script-nav-heading {
+  font-size: 0.75em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin: 16px 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.script-nav-heading:first-child {
+  margin-top: 0;
+}
+
+.script-nav-empty {
+  font-size: 0.85em;
+  color: var(--muted);
+  padding: 4px 12px;
+}
+
 .scripts-content {
   flex: 1;
   min-width: 0;
@@ -276,10 +297,16 @@
     <div class="scripts-content">
       <section id="community-scripts">
         <h2>Add Your Own Script</h2>
+        <p class="script-desc">Share a script with everyone — it publishes immediately, with no review. Read a script fully before running it, especially anything that asks for Administrator or root, the same way you would for any script from a stranger on the internet.</p>
         <form class="script-form" id="add-script-form">
           <div class="form-group">
             <label for="script-name">Script Name *</label>
             <input type="text" id="script-name" name="name" placeholder="e.g., User Cleanup Script" required maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label for="script-author">Your name / handle (optional)</label>
+            <input type="text" id="script-author" name="author" placeholder="optional" maxlength="80">
           </div>
 
           <div class="form-group">
@@ -292,8 +319,18 @@
           </div>
 
           <div class="form-group">
+            <label for="script-description">Description (optional)</label>
+            <textarea id="script-description" name="description" placeholder="What does it do? What does it need to run?" maxlength="3000" style="min-height: 70px;"></textarea>
+          </div>
+
+          <div class="form-group">
             <label for="script-content">Script Content *</label>
-            <textarea id="script-content" name="content" placeholder="Paste your script here..." required></textarea>
+            <textarea id="script-content" name="content" placeholder="Paste your script here..." required spellcheck="false"></textarea>
+          </div>
+
+          <div class="form-group" style="position:absolute;left:-9999px;" aria-hidden="true">
+            <label for="script-hp">Leave blank</label>
+            <input type="text" id="script-hp" tabindex="-1" autocomplete="off">
           </div>
 
           <div class="form-actions">
@@ -309,7 +346,7 @@
     </div>
   </div>
 
-  <div class="script-card" id="script-att13">
+  <div class="script-card" id="card-att13">
     <div class="script-card-header">
       <h2>User Enforcement Script (ATT13) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
@@ -599,7 +636,7 @@ if ($dryRun) {
   </div>
 
 
-  <div class="script-card" id="script-att14">
+  <div class="script-card" id="card-att14">
     <div class="script-card-header">
       <h2>Windows 11 Full Enforcement Script (ATT14) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
@@ -1700,7 +1737,7 @@ Write-Host "Reminder: Windows Update, gpedit.msc-equivalent policies, and Local 
   </div>
 
 
-  <div class="script-card" id="script-att15">
+  <div class="script-card" id="card-att15">
     <div class="script-card-header">
       <h2>Windows 11 Full Enforcement Script (ATT15) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
@@ -2918,7 +2955,7 @@ Write-Host "Reminder: Windows Update, gpedit.msc-equivalent policies, and Local 
   </div>
 
 
-  <div class="script-card" id="script-att16">
+  <div class="script-card" id="card-att16">
     <div class="script-card-header">
       <h2>Windows 11 Full Enforcement Script (ATT16) <span class="script-type-badge">.ps1</span></h2>
       <div class="script-card-actions">
@@ -4302,7 +4339,7 @@ Write-Host "Reminder: Windows Update, gpedit.msc-equivalent policies, and Local 
   </div>
 
 
-  <div class="script-card">
+  <div class="script-card" id="card-linux-v1">
     <div class="script-card-header">
       <h2>Linux Hardening Script (ATT_Linux_v1)</h2>
       <div class="script-card-actions">
@@ -4579,48 +4616,6 @@ echo "Script finished."
     </div>
   </div>
 
-  <section id="community-scripts" class="community-section">
-    <h2>Community Scripts</h2>
-    <div class="warning-banner">
-      <strong>Not reviewed by site admins.</strong> Anyone can submit a script here and it publishes immediately, with no review. Read a script fully before running it — especially anything that asks for Administrator or root — the same way you would for any script from a stranger on the internet.
-    </div>
-
-    <form id="script-submit-form" class="script-form">
-      <div class="form-row">
-        <label for="cs-title">Title</label>
-        <input type="text" id="cs-title" maxlength="120" required placeholder="e.g. Quick service audit">
-      </div>
-      <div class="form-row">
-        <label for="cs-author">Your name / handle (optional)</label>
-        <input type="text" id="cs-author" maxlength="80" placeholder="optional">
-      </div>
-      <div class="form-row">
-        <label for="cs-filename">Filename (with extension)</label>
-        <input type="text" id="cs-filename" maxlength="80" required placeholder="e.g. my-script.ps1">
-      </div>
-      <div class="form-row">
-        <label for="cs-description">Description</label>
-        <textarea id="cs-description" maxlength="3000" rows="3" required placeholder="What does it do? What does it need to run?"></textarea>
-      </div>
-      <div class="form-row">
-        <label for="cs-content">Script content</label>
-        <textarea id="cs-content" rows="12" required placeholder="Paste the full script here" spellcheck="false"></textarea>
-      </div>
-      <div class="form-row" style="position:absolute;left:-9999px;" aria-hidden="true">
-        <label for="cs-hp">Leave blank</label>
-        <input type="text" id="cs-hp" tabindex="-1" autocomplete="off">
-      </div>
-      <div class="form-row">
-        <button type="submit" class="btn btn-primary" id="cs-submit-btn">Submit script</button>
-        <span id="cs-status" class="cs-status"></span>
-      </div>
-    </form>
-
-    <div id="community-list" class="community-list">
-      <p class="cs-empty">Loading community scripts…</p>
-    </div>
-  </section>
-
   <div class="hub-links">
     <h3>More scripts coming</h3>
     <ul>
@@ -4694,24 +4689,36 @@ function removeOwnedCommunityScriptId(id) {
   saveOwnedCommunityScriptIds(ids);
 }
 
-// Fetch community scripts from API
+// Fetch community scripts from API, including their script content
 async function fetchCommunityScripts() {
   if (isLoadingCommunityScripts) return;
   isLoadingCommunityScripts = true;
-  
+
   try {
     const response = await fetch('/api/scripts-list');
     if (!response.ok) throw new Error('Failed to fetch scripts');
-    
+
     const data = await response.json();
     const ownedIds = loadOwnedCommunityScriptIds();
-    communityScripts = (data.scripts || []).map(script => ({
-      ...script,
-      id: script.id || 'community-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
-      isBuiltin: false,
-      isCommunity: true,
-      isOwned: ownedIds.includes(script.id),
-      type: script.filename && script.filename.endsWith('.ps1') ? 'windows' : 'linux'
+
+    communityScripts = await Promise.all((data.scripts || []).map(async (script) => {
+      let content = '';
+      try {
+        const contentRes = await fetch(script.url);
+        if (contentRes.ok) content = await contentRes.text();
+      } catch (err) {
+        console.error('Error fetching community script content:', err);
+      }
+      return {
+        ...script,
+        id: script.id || 'community-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+        name: script.title,
+        content,
+        isBuiltin: false,
+        isCommunity: true,
+        isOwned: ownedIds.includes(script.id),
+        type: script.filename && script.filename.endsWith('.ps1') ? 'windows' : 'linux'
+      };
     }));
   } catch (err) {
     console.error('Error fetching community scripts:', err);
@@ -4783,6 +4790,36 @@ function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
+// Copy a script's text content to the clipboard, with brief button feedback
+function cpCopyScript(codeId, btn) {
+  const codeEl = document.getElementById(codeId);
+  if (!codeEl) return;
+  const text = codeEl.textContent;
+  const done = (ok) => {
+    if (!btn) return;
+    const original = btn.textContent;
+    btn.textContent = ok ? 'Copied!' : 'Copy failed';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
+  } else {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done(true);
+    } catch (e) {
+      done(false);
+    }
+  }
+}
+
 // Render script cards - dynamically update the scripts list
 function renderScripts() {
   const userScripts = loadUserScripts();
@@ -4802,7 +4839,7 @@ function renderScripts() {
   allUserAndCommunityScripts.forEach(script => {
     const card = document.createElement('div');
     card.className = 'script-card ' + (script.isCommunity ? 'community-submitted' : 'user-submitted');
-    card.id = 'script-' + script.id;
+    card.id = 'card-' + script.id;
     
     const typeLabel = script.type === 'windows' ? '.ps1' : '.sh';
     const downloadExt = script.type === 'windows' ? '.ps1' : '.sh';
@@ -4830,41 +4867,59 @@ function renderScripts() {
   });
 }
 
-// Render sidebar navigation
+// Render sidebar navigation, grouped into labeled sections so it's clear
+// which scripts are built-in vs. added locally vs. shared by the community.
 function renderSidebar() {
   const userScripts = loadUserScripts();
-  const allScripts = [...BUILTIN_SCRIPTS, ...userScripts, ...communityScripts];
-  
+
   const sidebarList = document.getElementById('sidebar-list');
   sidebarList.innerHTML = '';
-  
-  allScripts.forEach(script => {
+
+  function addNavItem(script) {
     const item = document.createElement('a');
     item.className = 'script-nav-item';
-    item.href = '#script-' + script.id;
+    item.href = '#card-' + script.id;
     item.textContent = script.name;
-    
-    if (!script.isBuiltin) {
-      const badge = document.createElement('span');
-      badge.className = 'script-nav-label';
-      badge.textContent = '(Community)';
-      item.appendChild(badge);
-    }
-    
+
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      const target = document.getElementById('script-' + script.id);
+      const target = document.getElementById('card-' + script.id);
       if (target) {
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
+
         // Update active state
         document.querySelectorAll('.script-nav-item').forEach(el => el.classList.remove('active'));
         item.classList.add('active');
       }
     });
-    
+
     sidebarList.appendChild(item);
-  });
+  }
+
+  function addGroupHeading(text) {
+    const heading = document.createElement('div');
+    heading.className = 'script-nav-heading';
+    heading.textContent = text;
+    sidebarList.appendChild(heading);
+  }
+
+  addGroupHeading('Built-in');
+  BUILTIN_SCRIPTS.forEach(addNavItem);
+
+  if (userScripts.length) {
+    addGroupHeading('Your Scripts');
+    userScripts.forEach(addNavItem);
+  }
+
+  addGroupHeading(`Community (${communityScripts.length})`);
+  if (communityScripts.length) {
+    communityScripts.forEach(addNavItem);
+  } else {
+    const empty = document.createElement('div');
+    empty.className = 'script-nav-empty';
+    empty.textContent = 'No community scripts yet.';
+    sidebarList.appendChild(empty);
+  }
 }
 
 // Form submission
@@ -4872,8 +4927,11 @@ document.getElementById('add-script-form').addEventListener('submit', async func
   e.preventDefault();
   
   const name = document.getElementById('script-name').value.trim();
+  const author = document.getElementById('script-author').value.trim();
   const type = document.getElementById('script-type').value;
+  const description = document.getElementById('script-description').value.trim();
   const content = document.getElementById('script-content').value.trim();
+  const hp = document.getElementById('script-hp').value;
   
   if (!name || !type || !content) {
     showMessage('Please fill in all required fields.', 'error');
@@ -4904,9 +4962,9 @@ document.getElementById('add-script-form').addEventListener('submit', async func
         title: name,
         filename: filename,
         content: content,
-        description: '',
-        author: '',
-        hp: '',
+        description: description,
+        author: author,
+        hp: hp,
         loadedAt: pageLoadedAt
       })
     });
