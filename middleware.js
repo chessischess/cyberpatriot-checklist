@@ -4,7 +4,7 @@
 // (no Max-Age/Expires, so it clears when the browser closes) then lets
 // them through for the rest of the browser session.
 
-export const config = {
+const config = {
   runtime: 'nodejs',
 };
 
@@ -115,7 +115,7 @@ function gatePage(error) {
 </html>`;
 }
 
-export default async function middleware(request) {
+async function middleware(request) {
   const url = new URL(request.url);
 
   if (ALWAYS_ALLOWED.has(url.pathname)) {
@@ -168,3 +168,6 @@ export default async function middleware(request) {
   // Access granted: continue to normal routing (static file or API route).
   return undefined;
 }
+
+module.exports = middleware;
+module.exports.config = config;
