@@ -209,6 +209,20 @@ footer { color: var(--muted); font-size: 0.8rem; text-align: center; margin-top:
 .hub-links ul { margin: 6px 0 0 0; padding-left: 20px; font-size: 0.9rem; }
 .hub-links a { color: var(--accent); }
 
+.form-row { margin-bottom: 12px; }
+.form-row label { display: block; margin-bottom: 4px; font-size: 0.85rem; font-weight: 500; }
+.form-row input[type=text], .form-row textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: var(--card);
+  color: var(--text);
+}
+#submit-message { font-size: 0.85rem; margin-top: 6px; }
+
 .script-card {
   background: var(--card);
   border: 1px solid var(--border);
