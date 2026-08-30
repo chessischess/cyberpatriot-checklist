@@ -87,6 +87,87 @@ function initChecklist(DATA, QUICK_REF, storageKey, pageSlug) {
     }
   }
 
+  function fmtTimestamp(iso) {
+    if (!iso) return "Unknown time";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, {
+        year: "numeric", month: "short", day: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  async function openHistory() {
+    if (!pageSlug) return;
+    let historyPanel = document.getElementById("cpHistoryPanel");
+    if (historyPanel) {
+      historyPanel.remove();
+      return;
+    }
+
+    historyPanel = document.createElement("div");
+    historyPanel.id = "cpHistoryPanel";
+    historyPanel.className = "cp-history-panel";
+    historyPanel.innerHTML = "<p>Loading version history…</p>";
+    const toolbar = document.querySelector(".toolbar");
+    toolbar.parentNode.insertBefore(historyPanel, toolbar.nextSibling);
+
+    try {
+      const res = await fetch(`/api/checklist-history?page=${encodeURIComponent(pageSlug)}`);
+      const json = await res.json().catch(() => ({}));
+      const history = (json && Array.isArray(json.history)) ? json.history : [];
+
+      historyPanel.innerHTML = "";
+      const title = document.createElement("h3");
+      title.textContent = "Version History";
+      title.style.margin = "0 0 8px 0";
+      historyPanel.appendChild(title);
+
+      if (!history.length) {
+        const empty = document.createElement("p");
+        empty.textContent = "No previous versions saved yet. A version is recorded every time someone saves changes.";
+        empty.style.color = "var(--muted)";
+        historyPanel.appendChild(empty);
+      } else {
+        const list = document.createElement("ul");
+        list.className = "cp-history-list";
+        history.forEach((entry, idx) => {
+          const li = document.createElement("li");
+          li.className = "cp-history-item";
+
+          const label = document.createElement("span");
+          label.textContent = `${fmtTimestamp(entry.updatedAt)}`;
+          li.appendChild(label);
+
+          const restoreBtn = document.createElement("button");
+          restoreBtn.textContent = "Restore this version";
+          restoreBtn.onclick = async () => {
+            if (!confirm(`Restore the version from ${fmtTimestamp(entry.updatedAt)}? This will overwrite the current checklist for everyone (the current version will itself be saved to history first).`)) return;
+            data = cpCloneData(entry.data);
+            render();
+            historyPanel.remove();
+            await saveToServer();
+          };
+          li.appendChild(restoreBtn);
+
+          list.appendChild(li);
+        });
+        historyPanel.appendChild(list);
+      }
+
+      const closeBtn = document.createElement("button");
+      closeBtn.textContent = "Close";
+      closeBtn.style.marginTop = "10px";
+      closeBtn.onclick = () => historyPanel.remove();
+      historyPanel.appendChild(closeBtn);
+    } catch (e) {
+      historyPanel.innerHTML = "<p>Failed to load version history.</p>";
+    }
+  }
+
   async function saveToServer() {
     if (!pageSlug) return;
     setStatus("Saving…");
@@ -370,6 +451,7 @@ function initChecklist(DATA, QUICK_REF, storageKey, pageSlug) {
     render();
   };
   window.cpSaveChecklist = () => saveToServer();
+  window.cpOpenHistory = () => openHistory();
 
   // Insert an editing toolbar (Edit/Save + status) next to the existing toolbar buttons.
   const toolbar = document.querySelector(".toolbar");
@@ -387,6 +469,12 @@ function initChecklist(DATA, QUICK_REF, storageKey, pageSlug) {
     saveBtn.style.display = "none";
     saveBtn.onclick = () => window.cpSaveChecklist();
     toolbar.appendChild(saveBtn);
+
+    const historyBtn = document.createElement("button");
+    historyBtn.id = "cpHistoryBtn";
+    historyBtn.textContent = "Version History";
+    historyBtn.onclick = () => window.cpOpenHistory();
+    toolbar.appendChild(historyBtn);
 
     saveStatusEl = document.createElement("div");
     saveStatusEl.id = "cpSaveStatus";

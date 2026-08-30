@@ -1,4 +1,4 @@
-const { put } = require('@vercel/blob');
+const { put, list } = require('@vercel/blob');
 
 const PAGES = new Set(['windows-client', 'windows-server', 'linux']);
 const MAX_SECTIONS = 60;
@@ -7,9 +7,14 @@ const MAX_STEPS_PER_ITEM = 60;
 const MAX_TITLE_LEN = 300;
 const MAX_TEXT_LEN = 4000;
 const MAX_NOTE_LEN = 2000;
+const MAX_HISTORY_ENTRIES = 20;
 
 function pathFor(page) {
   return `checklist-overrides/${page}.json`;
+}
+
+function historyPathFor(page) {
+  return `checklist-history/${page}.json`;
 }
 
 // very small in-memory throttle per warm function instance; not a real
@@ -123,6 +128,41 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // Archive the current version (if any) into history before overwriting,
+    // so users can see prior versions and roll back if needed.
+    try {
+      const { blobs } = await list({ prefix: pathFor(page), limit: 1 });
+      const existing = blobs.find((b) => b.pathname === pathFor(page));
+      if (existing) {
+        const r = await fetch(existing.url);
+        if (r.ok) {
+          const prev = await r.json();
+          if (prev && Array.isArray(prev.data) && prev.data.length) {
+            const histPath = historyPathFor(page);
+            const histRes = await list({ prefix: histPath, limit: 1 });
+            const histEntry = histRes.blobs.find((b) => b.pathname === histPath);
+            let history = [];
+            if (histEntry) {
+              const hr = await fetch(histEntry.url);
+              if (hr.ok) history = await hr.json();
+              if (!Array.isArray(history)) history = [];
+            }
+            history.unshift({ data: prev.data, updatedAt: prev.updatedAt || null });
+            if (history.length > MAX_HISTORY_ENTRIES) history = history.slice(0, MAX_HISTORY_ENTRIES);
+            await put(histPath, JSON.stringify(history, null, 2), {
+              access: 'public',
+              contentType: 'application/json',
+              addRandomSuffix: false,
+              allowOverwrite: true,
+            });
+          }
+        }
+      }
+    } catch (histErr) {
+      // Don't block saving the new version if history archiving fails.
+      console.error('Failed to archive checklist history:', histErr);
+    }
+
     const payload = { data: normalized, updatedAt: new Date().toISOString() };
     await put(pathFor(page), JSON.stringify(payload, null, 2), {
       access: 'public',
