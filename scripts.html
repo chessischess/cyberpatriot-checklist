@@ -1,29 +1,276 @@
-@@
- // Escape HTML to prevent XSS
- function escapeHtml(text) {
--  const map = {
--    '&': '&amp;',
--    '<': '&lt;',
--    '>': '&gt;',
--    '"': '&quot;',
--    "'": '&#039;'
--  };
--  return text.replace(/[&<>"']/g, m => map[m]);
-+  if (text === undefined || text === null) return '';
-+  const map = {
-+    '&': '&amp;',
-+    '<': '&lt;',
-+    '>': '&gt;',
-+    '"': '&quot;',
-+    "'": '&#039;'
-+  };
-+  return String(text).replace(/[&<>"']/g, m => map[m]);
- }
-@@
-     card.innerHTML = `
-@@
-           <button class="btn btn-primary" onclick="downloadScript('${(script.name || script.title).replace(/'/g, "\\'")}', document.getElementById('script-${script.id}').textContent, '${script.type}')">Download ${downloadExt}</button>
-@@
-     `;
-@@
- }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scripts | CyberPatriot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="index.html">Home</a>
+    <a href="windows-client.html">Windows Client</a>
+    <a href="windows-server.html">Windows Server</a>
+    <a href="linux.html">Linux</a>
+    <a href="scripts.html" class="active">Scripts</a>
+  </nav>
+
+  <h1>Scripts</h1>
+  <div class="sub">Built-in enforcement scripts plus scripts submitted by the community. Review any script before you run it on a competition image.</div>
+
+  <div class="section">
+    <div class="section-header"><span>Submit a script</span></div>
+    <div class="section-body">
+      <form id="submit-form">
+        <div class="form-row">
+          <label for="field-title">Title</label>
+          <input type="text" id="field-title" name="title" maxlength="120" required>
+        </div>
+        <div class="form-row">
+          <label for="field-filename">Filename</label>
+          <input type="text" id="field-filename" name="filename" placeholder="example.ps1" maxlength="80" required>
+        </div>
+        <div class="form-row">
+          <label for="field-author">Author (optional)</label>
+          <input type="text" id="field-author" name="author" maxlength="80">
+        </div>
+        <div class="form-row">
+          <label for="field-description">Description</label>
+          <textarea id="field-description" name="description" maxlength="3000" rows="3" required></textarea>
+        </div>
+        <div class="form-row">
+          <label for="field-content">Script content</label>
+          <textarea id="field-content" name="content" rows="10" required></textarea>
+        </div>
+        <!-- Honeypot field: hidden from real users, bots tend to fill every field -->
+        <input type="text" id="field-hp" name="hp" autocomplete="off" tabindex="-1" style="position:absolute; left:-9999px;">
+        <div class="toolbar">
+          <button type="submit" class="btn btn-primary">Submit script</button>
+        </div>
+        <div id="submit-message"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="scripts-list">
+    <p class="sub">Loading scripts&hellip;</p>
+  </div>
+
+  <footer>Always review a script before running it — you are responsible for anything it does on your image.</footer>
+</div>
+
+<script>
+  // Enforcement scripts that ship with this repo (see /scripts).
+  const BUILTIN_SCRIPTS = [
+    {
+      id: 'builtin-att14',
+      title: 'ATT14 Enforcement (Windows 11)',
+      description: 'Users, admins, password policy, security options, firewall, RDP, unauthorized software/files.',
+      filename: 'ATT14_Enforcement.ps1',
+      author: 'CyberPatriot Checklist',
+      url: 'scripts/ATT14_Enforcement.ps1',
+    },
+    {
+      id: 'builtin-att15',
+      title: 'ATT15 Enforcement (Windows 11)',
+      description: 'Users, admins, password policy, security options, firewall, RDP, unauthorized software/files.',
+      filename: 'ATT15_Enforcement.ps1',
+      author: 'CyberPatriot Checklist',
+      url: 'scripts/ATT15_Enforcement.ps1',
+    },
+    {
+      id: 'builtin-att16',
+      title: 'ATT16 Enforcement (Windows 11)',
+      description: 'Users, admins, password policy, security options, firewall, RDP, unauthorized software/files.',
+      filename: 'ATT16_Enforcement.ps1',
+      author: 'CyberPatriot Checklist',
+      url: 'scripts/ATT16_Enforcement.ps1',
+    },
+    {
+      id: 'builtin-user-enforcement',
+      title: 'User Enforcement (ATT13)',
+      description: 'Users, admins, password expiration and policy enforcement.',
+      filename: 'CyberPatriot-User-Enforcement.ps1',
+      author: 'CyberPatriot Checklist',
+      url: 'scripts/CyberPatriot-User-Enforcement.ps1',
+    },
+    {
+      id: 'builtin-linux',
+      title: 'Linux Hardening (v1)',
+      description: 'Interactive Linux hardening script with a dry-run mode.',
+      filename: 'ATT_Linux_v1.sh',
+      author: 'CyberPatriot Checklist',
+      url: 'scripts/ATT_Linux_v1.sh',
+    },
+  ];
+
+  // Escape HTML to prevent XSS. Guard against missing/non-string fields so a
+  // single script with an undefined optional field (e.g. author/description)
+  // can't crash rendering for every script.
+  function escapeHtml(text) {
+    if (text === undefined || text === null) return '';
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+  }
+
+  const MIME_BY_EXT = {
+    ps1: 'text/plain',
+    psm1: 'text/plain',
+    sh: 'text/x-sh',
+    bash: 'text/x-sh',
+    py: 'text/x-python',
+    bat: 'text/plain',
+    cmd: 'text/plain',
+    txt: 'text/plain',
+  };
+
+  function extOf(filename) {
+    const name = typeof filename === 'string' ? filename : '';
+    const match = /\.([A-Za-z0-9]+)$/.exec(name);
+    return match ? match[1].toLowerCase() : '';
+  }
+
+  // Safely embed a string as a JS string literal inside an HTML attribute
+  // delimited by double quotes. JSON.stringify() escapes backslashes and
+  // quotes for JS; the extra &quot; replace then protects the HTML attribute
+  // boundary (browsers decode the entity back to " before JS parses it).
+  function jsAttr(value) {
+    return JSON.stringify(String(value)).replace(/"/g, '&quot;');
+  }
+
+  function downloadScript(id, filename, type) {
+    const el = document.getElementById(`script-${id}`);
+    const content = el ? el.textContent : '';
+    const safeName = (typeof filename === 'string' && filename) ? filename : 'script.txt';
+    const blob = new Blob([typeof content === 'string' ? content : ''], { type: type || 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function renderScripts(scripts) {
+    const container = document.getElementById('scripts-list');
+    if (!Array.isArray(scripts) || scripts.length === 0) {
+      container.innerHTML = '<p class="sub">No scripts yet. Be the first to submit one!</p>';
+      return;
+    }
+
+    container.innerHTML = scripts.map(script => {
+      const ext = extOf(script.filename);
+      const downloadExt = ext ? `.${ext}` : '';
+      const mimeType = MIME_BY_EXT[ext] || 'text/plain';
+      const displayName = script.title || script.filename || 'Untitled script';
+      const downloadName = script.filename || `${displayName}.txt`;
+      return `
+        <div class="script-card">
+          <div class="script-card-header">
+            <h2>${escapeHtml(displayName)}</h2>
+            <div class="script-card-actions">
+              <button class="btn btn-primary" onclick="downloadScript(${jsAttr(script.id)}, ${jsAttr(downloadName)}, ${jsAttr(mimeType)})">Download ${escapeHtml(downloadExt)}</button>
+            </div>
+          </div>
+          <p class="script-desc">${escapeHtml(script.description) || '&nbsp;'}</p>
+          <div class="script-block-wrap">
+            <pre class="script-block"><code id="script-${escapeHtml(script.id)}">${escapeHtml(script.content)}</code></pre>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function fetchText(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return '';
+      return await res.text();
+    } catch {
+      return '';
+    }
+  }
+
+  async function loadScripts() {
+    const container = document.getElementById('scripts-list');
+    let community = [];
+    try {
+      const res = await fetch('/api/scripts-list');
+      if (res.ok) {
+        const data = await res.json();
+        community = Array.isArray(data.scripts) ? data.scripts : [];
+      }
+    } catch {
+      community = [];
+    }
+
+    const all = [...BUILTIN_SCRIPTS, ...community];
+    const withContent = await Promise.all(all.map(async script => ({
+      ...script,
+      content: await fetchText(script.url),
+    })));
+
+    renderScripts(withContent);
+    return withContent;
+  }
+
+  function showMessage(text, isError) {
+    const el = document.getElementById('submit-message');
+    el.textContent = text;
+    el.style.color = isError ? '#c0392b' : 'var(--done)';
+  }
+
+  document.getElementById('submit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const title = form.title.value.trim();
+    const filename = form.filename.value.trim();
+    const author = form.author.value.trim();
+    const description = form.description.value.trim();
+    const content = form.content.value;
+    const hp = form.hp.value;
+
+    showMessage('Submitting…', false);
+
+    try {
+      const res = await fetch('/api/scripts-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description,
+          filename,
+          content,
+          author,
+          hp,
+          loadedAt: window.cpScriptsLoadedAt,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showMessage(data.error || 'Failed to submit script.', true);
+        return;
+      }
+      showMessage('Script submitted!', false);
+      form.reset();
+      await loadScripts();
+    } catch (err) {
+      console.error('Error submitting script:', err);
+      showMessage('Failed to submit script.', true);
+    }
+  });
+
+  window.cpScriptsLoadedAt = Date.now();
+  loadScripts();
+</script>
+</body>
+</html>
