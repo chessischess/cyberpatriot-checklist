@@ -6,27 +6,34 @@
 <title>Scripts | CyberPatriot</title>
 <link rel="stylesheet" href="style.css">
 <style>
+/* This page is wider than the default .wrap to fit the sidebar + content */
+body .wrap {
+  max-width: 1200px;
+}
+
 /* Sidebar layout */
 .scripts-container {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
 }
 
 #scripts-sidebar {
-  position: fixed;
-  top: 120px;
-  left: 0;
-  bottom: 0;
+  position: sticky;
+  top: 20px;
+  flex: 0 0 270px;
   width: 270px;
+  max-height: calc(100vh - 40px);
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 0 8px 8px 0;
+  border-radius: 8px;
   padding: 20px;
   overflow-y: auto;
   z-index: 10;
 }
 
 .scripts-content {
-  margin-left: 300px;
+  flex: 1;
   min-width: 0;
 }
 
@@ -88,11 +95,6 @@
   font-size: 0.85em;
   color: var(--muted);
   padding: 4px 12px;
-}
-
-.scripts-content {
-  flex: 1;
-  min-width: 0;
 }
 
 /* Form styling */
@@ -267,10 +269,6 @@
     max-height: none;
     position: static;
     border-radius: 8px;
-  }
-
-  .scripts-content {
-    margin-left: 0;
   }
 }
 </style>
